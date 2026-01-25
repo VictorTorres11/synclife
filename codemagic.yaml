@@ -5,7 +5,7 @@ workflows:
     max_build_duration: 60
     instance_type: linux_x2
     environment:
-      flutter: 3.24.3
+      flutter: 3.27.1
       java: 17
       groups:
         - firebase_config
@@ -29,10 +29,10 @@ workflows:
         ignore_failure: true
       - name: Build debug APK
         script: |
-          flutter build apk --debug --no-tree-shake-icons
+          flutter build apk --debug --no-tree-shake-icons --android-skip-build-dependency-validation
       - name: Build release APK
         script: |
-          flutter build apk --release --no-tree-shake-icons
+          flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
     artifacts:
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/mapping.txt
@@ -50,7 +50,7 @@ workflows:
     max_build_duration: 30
     instance_type: linux_x2
     environment:
-      flutter: 3.24.3
+      flutter: 3.27.1
       java: 17
     scripts:
       - name: Set up local.properties
@@ -64,7 +64,7 @@ workflows:
           flutter packages pub get
       - name: Build debug APK (skip tests)
         script: |
-          flutter build apk --debug --no-tree-shake-icons
+          flutter build apk --debug --no-tree-shake-icons --android-skip-build-dependency-validation
     artifacts:
       - build/**/outputs/**/*.apk
     publishing:
@@ -81,7 +81,7 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
-      flutter: 3.24.3
+      flutter: 3.27.1
       xcode: 15.4
       cocoapods: default
       groups:
@@ -132,7 +132,7 @@ workflows:
     max_build_duration: 30
     instance_type: linux_x2
     environment:
-      flutter: 3.24.3
+      flutter: 3.27.1
       groups:
         - firebase_config
     scripts:
@@ -167,7 +167,7 @@ workflows:
     max_build_duration: 180
     instance_type: mac_mini_m1
     environment:
-      flutter: 3.24.3
+      flutter: 3.27.1
       xcode: 15.4
       java: 17
       cocoapods: default
@@ -209,7 +209,7 @@ workflows:
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
       - name: Build Android APK
         script: |
-          flutter build apk --release --no-tree-shake-icons
+          flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
     artifacts:
       - build/web/**
       - build/ios/ipa/*.ipa

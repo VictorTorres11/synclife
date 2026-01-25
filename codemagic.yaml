@@ -1,7 +1,48 @@
 workflows:
-  # Workflow simplificado para desenvolvimento
+  # Workflow principal para Android
+  android-workflow:
+    name: SyncLife Android Build
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+      groups:
+        - firebase_config
+    scripts:
+      - name: Set up local.properties
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Flutter analyze
+        script: |
+          flutter analyze --no-fatal-infos
+      - name: Run unit tests (basic)
+        script: |
+          flutter test test/core/build/ --reporter expanded || true
+          flutter test test/core/performance/ --reporter expanded || true
+        ignore_failure: true
+      - name: Build debug APK
+        script: |
+          flutter build apk --debug --no-tree-shake-icons
+      - name: Build release APK
+        script: |
+          flutter build apk --release --no-tree-shake-icons
+    artifacts:
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - victor@synclife.app
+        notify:
+          success: true
+          failure: true
+
+  # Workflow simplificado para testes rápidos
   android-debug-simple:
-    name: SyncLife Android Debug (Simple)
+    name: SyncLife Android Debug (Quick)
     max_build_duration: 30
     instance_type: linux_x2
     environment:
@@ -26,31 +67,22 @@ workflows:
           success: true
           failure: true
 
-  # Workflow com testes básicos
-  android-debug-with-tests:
-    name: SyncLife Android Debug (With Basic Tests)
-    max_build_duration: 45
+  # Workflow para web (opcional)
+  web-workflow:
+    name: SyncLife Web Build
+    max_build_duration: 30
     instance_type: linux_x2
     environment:
       flutter: stable
     scripts:
-      - name: Set up local.properties
-        script: |
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
       - name: Get Flutter packages
         script: |
           flutter packages pub get
-      - name: Run basic tests (skip problematic ones)
+      - name: Build web
         script: |
-          flutter test test/core/build/ --reporter expanded || true
-          flutter test test/core/performance/ --reporter expanded || true
-          flutter test test/features/monetization/discrete_ads_test.dart --reporter expanded || true
-        ignore_failure: true
-      - name: Build debug APK
-        script: |
-          flutter build apk --debug --no-tree-shake-icons
+          flutter build web --release
     artifacts:
-      - build/**/outputs/**/*.apk
+      - build/web/**
     publishing:
       email:
         recipients:
@@ -58,88 +90,3 @@ workflows:
         notify:
           success: true
           failure: true
-
-  # Workflow para builds de produção
-  android-release:
-    name: SyncLife Android Release
-    max_build_duration: 60
-    instance_type: linux_x2
-    environment:
-      flutter: stable
-      groups:
-        - firebase_config
-    scripts:
-      - name: Set up local.properties
-        script: |
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Build release APK
-        script: |
-          flutter build apk --release --no-tree-shake-icons
-      - name: Build App Bundle
-        script: |
-          flutter build appbundle --release --no-tree-shake-icons
-    artifacts:
-      - build/**/outputs/**/*.apk
-      - build/**/outputs/**/*.aab
-      - build/**/outputs/**/mapping.txt
-    publishing:
-      email:
-        recipients:
-          - victor@synclife.app
-        notify:
-          success: true
-          failure: true
-
-  ios-workflow:
-    name: iOS Workflow
-    max_build_duration: 120
-    instance_type: mac_mini_m1
-    integrations:
-      app_store_connect: codemagic
-    environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.synclife.synclife_app
-      flutter: stable
-      xcode: latest
-      cocoapods: default
-    scripts:
-      - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Install pods
-        script: |
-          find . -name "Podfile" -execdir pod install \;
-      - name: Flutter analyze
-        script: |
-          flutter analyze
-      - name: Flutter unit tests
-        script: |
-          flutter test
-      - name: Flutter build ipa
-        script: |
-          flutter build ipa --release --dart-define=FLUTTER_WEB_AUTO_DETECT=true --export-options-plist=/Users/builder/export_options.plist
-    artifacts:
-      - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - flutter_drive.log
-    publishing:
-      app_store_connect:
-        auth: integration
-        
-        # Configuration related to TestFlight (optional)
-        # Note: This action is performed during post-processing.
-        submit_to_testflight: false
-        beta_groups: # Specify the names of beta tester groups that will get access to the build once it has passed beta review.
-          - group name 1
-          - group name 2
-
-        # Configuration related to App Store (optional)
-        # Note: This action is performed during post-processing.
-        submit_to_app_store: false

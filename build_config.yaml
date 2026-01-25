@@ -1,0 +1,122 @@
+# Build configuration for SyncLife production builds
+
+# Android configuration
+android:
+  package_name: com.synclife.app
+  min_sdk_version: 21
+  target_sdk_version: 34
+  compile_sdk_version: 34
+  version_name: "1.0.0"
+  version_code: 1
+  
+  # Signing configuration (for production)
+  signing:
+    key_alias: synclife-key
+    key_store: android/app/synclife-keystore.jks
+    
+  # Obfuscation settings
+  obfuscation:
+    enabled: true
+    split_debug_info: true
+    debug_info_path: build/debug-info/android
+    
+  # ProGuard rules
+  proguard:
+    enabled: true
+    rules_file: android/app/proguard-rules.pro
+
+# iOS configuration
+ios:
+  bundle_identifier: com.synclife.app
+  deployment_target: "12.0"
+  version: "1.0.0"
+  build_number: "1"
+  
+  # Code signing
+  signing:
+    team_id: YOUR_TEAM_ID
+    provisioning_profile: SyncLife Production
+    certificate: iPhone Distribution
+    
+  # Obfuscation settings
+  obfuscation:
+    enabled: true
+    split_debug_info: true
+    debug_info_path: build/debug-info/ios
+
+# Web configuration
+web:
+  base_href: "/"
+  renderer: canvaskit
+  
+  # PWA settings
+  pwa:
+    enabled: true
+    name: "SyncLife"
+    short_name: "SyncLife"
+    description: "Collaborative task management with gamification"
+    theme_color: "#2196F3"
+    background_color: "#FFFFFF"
+
+# Build optimization
+optimization:
+  tree_shaking: true
+  minification: true
+  obfuscation: true
+  split_debug_info: true
+  
+  # Asset optimization
+  assets:
+    compress_images: true
+    optimize_fonts: true
+    remove_unused_assets: true
+
+# Security settings
+security:
+  enable_network_security_config: true
+  disable_debug_logging: true
+  enable_certificate_pinning: true
+  
+  # API security
+  api:
+    use_https_only: true
+    enable_certificate_validation: true
+    timeout_seconds: 30
+
+# Performance settings
+performance:
+  enable_multidex: true
+  enable_r8_optimization: true
+  enable_dart_obfuscation: true
+  
+  # Memory settings
+  memory:
+    heap_size_mb: 512
+    enable_memory_optimization: true
+
+# Analytics and monitoring
+monitoring:
+  firebase_analytics: true
+  firebase_crashlytics: true
+  firebase_performance: true
+  
+  # Custom events
+  custom_events:
+    - app_launch
+    - user_registration
+    - task_creation
+    - premium_upgrade
+
+# Store deployment
+deployment:
+  google_play:
+    track: production
+    rollout_percentage: 100
+    
+  app_store:
+    submit_for_review: true
+    release_type: manual
+    
+  firebase_hosting:
+    site_id: synclife-app
+    target: production

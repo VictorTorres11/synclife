@@ -1,0 +1,894 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/layout/main_layout.dart';
+import '../../../../core/onboarding/onboarding_overlay.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../monetization/domain/models/user_limitations.dart';
+import '../../../monetization/presentation/utils/premium_utils.dart';
+import '../../../monetization/presentation/widgets/limitation_banner.dart';
+import '../../../monetization/presentation/widgets/usage_indicator.dart';
+import '../../domain/models/board_type.dart';
+import '../../domain/models/create_board_request.dart';
+import '../../domain/models/models.dart';
+import '../providers/board_providers.dart';
+import '../providers/task_providers.dart';
+import '../widgets/add_task_dialog.dart';
+import '../widgets/inbox_widget.dart';
+import '../widgets/task_filter_bar.dart';
+import '../widgets/task_list_item.dart';
+
+class TasksPage extends ConsumerStatefulWidget {
+  const TasksPage({super.key});
+
+  @override
+  ConsumerState<TasksPage> createState() => _TasksPageState();
+}
+
+class _TasksPageState extends ConsumerState<TasksPage>
+    with TickerProviderStateMixin {
+  late TabController _tabController;
+  TaskFilter _selectedFilter = TaskFilter.all;
+  List<String> _selectedTags = [];
+
+  final List<String> _availableTags = [
+    'Health',
+    'Work',
+    'Home',
+    'Finance',
+    'Personal'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider);
+
+    if (currentUser == null) {
+      return const MainLayout(
+        title: 'SyncLife',
+        child: Center(
+          child: Text('Please log in to access your tasks'),
+        ),
+      );
+    }
+
+    return MainLayout(
+      title: 'SyncLife',
+      actions: [
+        IconButton(
+          key: SyncLifeOnboardingSteps.addTaskButtonKey,
+          icon: const Icon(Icons.add),
+          onPressed: () => _showAddTaskDialog(currentUser.id),
+        ),
+      ],
+      child: Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            tabs: [
+              const Tab(icon: Icon(Icons.task_alt), text: 'Tasks'),
+              Tab(
+                key: SyncLifeOnboardingSteps.inboxTabKey,
+                icon: const Icon(Icons.inbox),
+                text: 'Inbox',
+              ),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTasksTab(currentUser.id),
+                _buildInboxTab(currentUser.id),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTasksTab(String userId) {
+    final userBoardsAsync = ref.watch(userBoardsProvider);
+
+    return userBoardsAsync.when(
+      data: (boards) {
+        if (boards.isEmpty) {
+          return _buildNoBoardsView(userId);
+        }
+
+        // Use the first board as default for now
+        final defaultBoard = boards.first;
+        final tasksAsync = ref.watch(watchTasksProvider(defaultBoard.id));
+
+        return tasksAsync.when(
+          data: (tasks) => _buildTasksList(tasks, defaultBoard.id, userId),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error loading tasks: $error'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () =>
+                      ref.invalidate(watchTasksProvider(defaultBoard.id)),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error loading boards: $error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(userBoardsProvider),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoBoardsView(String userId) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.dashboard,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No boards found',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create your first board to start organizing tasks',
+            style: TextStyle(
+              color: Colors.grey[500],
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => _createDefaultBoard(userId),
+            icon: const Icon(Icons.add),
+            label: const Text('Create Default Board'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTasksList(List<Task> tasks, String boardId, String userId) {
+    final filteredTasks = _getFilteredTasks(tasks);
+
+    return Column(
+      children: [
+        // Usage indicator for tasks
+        const UsageIndicator(
+          limitationType: LimitationType.activeTasks,
+          compact: true,
+        ),
+
+        // Limitation banner if at limit
+        const LimitationBanner(
+          limitationType: LimitationType.activeTasks,
+        ),
+
+        TaskFilterBar(
+          selectedFilter: _selectedFilter,
+          onFilterChanged: (filter) {
+            setState(() {
+              _selectedFilter = filter;
+            });
+          },
+          selectedTags: _selectedTags,
+          onTagsChanged: (tags) {
+            setState(() {
+              _selectedTags = tags;
+            });
+          },
+          availableTags: _availableTags,
+        ),
+        const Divider(height: 1),
+        Expanded(
+          key: SyncLifeOnboardingSteps.taskListKey,
+          child: filteredTasks.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.task_alt,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No tasks found',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tap + to create your first task',
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: filteredTasks.length,
+                  itemBuilder: (context, index) {
+                    final task = filteredTasks[index];
+                    return TaskListItem(
+                      task: task,
+                      onComplete: () => _completeTask(task),
+                      onPostpone: () => _postponeTask(task),
+                      onTap: () => _showTaskDetails(task),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInboxTab(String userId) {
+    // TODO: Implement real inbox service integration
+    // For now, using empty list until inbox service is implemented
+    final List<InboxItem> inboxItems = [];
+
+    return SingleChildScrollView(
+      child: InboxWidget(
+        inboxItems: inboxItems,
+        onAddItem: (content) => _addInboxItem(content, userId),
+        onEditItem: _editInboxItem,
+        onDeleteItem: _deleteInboxItem,
+        onConvertToTask: _convertInboxToTask,
+      ),
+    );
+  }
+
+  List<Task> _getFilteredTasks(List<Task> tasks) {
+    final filtered = tasks.where((task) {
+      // Apply filter
+      switch (_selectedFilter) {
+        case TaskFilter.all:
+          break;
+        case TaskFilter.pending:
+          if (task.isCompleted) return false;
+        case TaskFilter.completed:
+          if (!task.isCompleted) return false;
+        case TaskFilter.overdue:
+          if (task.isCompleted || task.dueDate == null) return false;
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          final taskDate = DateTime(
+              task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
+          if (!taskDate.isBefore(today)) return false;
+        case TaskFilter.today:
+          if (task.dueDate == null) return false;
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          final taskDate = DateTime(
+              task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
+          if (!taskDate.isAtSameMomentAs(today)) return false;
+        case TaskFilter.thisWeek:
+          if (task.dueDate == null) return false;
+          final now = DateTime.now();
+          final weekStart = now.subtract(Duration(days: now.weekday - 1));
+          final weekEnd = weekStart.add(const Duration(days: 6));
+          if (task.dueDate!.isBefore(weekStart) ||
+              task.dueDate!.isAfter(weekEnd)) {
+            return false;
+          }
+      }
+
+      // Apply tag filter
+      if (_selectedTags.isNotEmpty) {
+        if (!task.tags.any((tag) => _selectedTags.contains(tag))) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+
+    // Sort by due date, then by creation date
+    filtered.sort((a, b) {
+      if (a.dueDate != null && b.dueDate != null) {
+        return a.dueDate!.compareTo(b.dueDate!);
+      } else if (a.dueDate != null) {
+        return -1;
+      } else if (b.dueDate != null) {
+        return 1;
+      } else {
+        return b.createdAt.compareTo(a.createdAt);
+      }
+    });
+
+    return filtered;
+  }
+
+  Future<void> _completeTask(Task task) async {
+    try {
+      final taskService = ref.read(taskServiceProvider);
+      await taskService.completeTask(task.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Task "${task.title}" completed! 🎉'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error completing task: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _postponeTask(Task task) async {
+    try {
+      // Calculate next occurrence based on recurrence
+      DateTime? nextDueDate;
+      if (task.dueDate != null) {
+        switch (task.recurrence) {
+          case TaskRecurrence.daily:
+            nextDueDate = task.dueDate!.add(const Duration(days: 1));
+          case TaskRecurrence.weekly:
+            nextDueDate = task.dueDate!.add(const Duration(days: 7));
+          case TaskRecurrence.monthly:
+            nextDueDate = DateTime(
+              task.dueDate!.year,
+              task.dueDate!.month + 1,
+              task.dueDate!.day,
+            );
+          case TaskRecurrence.none:
+          case TaskRecurrence.custom:
+            nextDueDate = task.dueDate!.add(const Duration(days: 1));
+        }
+      }
+
+      final taskService = ref.read(taskServiceProvider);
+      await taskService.updateTask(
+        task.id,
+        UpdateTaskRequest(dueDate: nextDueDate),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Task "${task.title}" postponed'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error postponing task: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showTaskDetails(Task task) {
+    context.push('/tasks/detail/${task.id}', extra: task);
+  }
+
+  Future<void> _createDefaultBoard(String userId) async {
+    try {
+      final boardService = ref.read(boardServiceProvider);
+      await boardService.createBoard(
+        CreateBoardRequest(
+          name: 'My Tasks',
+          description: 'Default board for personal tasks',
+          type: BoardType.private,
+          ownerId: userId,
+        ),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Default board created successfully! 🎉'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating default board: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showAddTaskDialog(String userId) async {
+    try {
+      // Check if user can create more tasks
+      final canCreate = await PremiumUtils.checkAndPromptForAction(
+        context,
+        ref,
+        LimitationType.activeTasks,
+        customMessage:
+            'You\'ve reached your task limit. Upgrade to Premium for unlimited tasks.',
+      );
+
+      if (!canCreate) return;
+
+      // Get user's boards - since it's a StreamProvider, we need to read the current value
+      final userBoardsAsync = ref.read(userBoardsProvider);
+
+      await userBoardsAsync.when(
+        data: (boards) async {
+          if (boards.isEmpty) {
+            // Create default board first
+            await _createDefaultBoard(userId);
+            // Refresh boards and wait a bit for the update
+            ref.invalidate(userBoardsProvider);
+            await Future.delayed(const Duration(milliseconds: 500));
+
+            // Try to get updated boards
+            final updatedBoardsAsync = ref.read(userBoardsProvider);
+            await updatedBoardsAsync.when(
+              data: (updatedBoards) async {
+                if (updatedBoards.isEmpty) {
+                  throw Exception('Failed to create default board');
+                }
+                await _showTaskDialog(updatedBoards.first, userId);
+              },
+              loading: () async {
+                throw Exception('Still loading boards after creation...');
+              },
+              error: (error, stack) async {
+                throw Exception('Error loading updated boards: $error');
+              },
+            );
+          } else {
+            await _showTaskDialog(boards.first, userId);
+          }
+        },
+        loading: () async {
+          throw Exception('Loading boards...');
+        },
+        error: (error, stack) async {
+          throw Exception('Error loading boards: $error');
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening task dialog: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showTaskDialog(Board board, String userId) async {
+    if (mounted) {
+      await showDialog(
+        context: context,
+        builder: (context) => AddTaskDialog(
+          onCreateTask: (request) => _createTask(request, board.id),
+          availableTags: _availableTags,
+          boardId: board.id,
+          userId: userId,
+        ),
+      );
+    }
+  }
+
+  Future<void> _createTask(CreateTaskRequest request, String boardId) async {
+    try {
+      final taskService = ref.read(taskServiceProvider);
+      await taskService.createTask(request.copyWith(boardId: boardId));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Task "${request.title}" created successfully! 🎉'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating task: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _addInboxItem(String content, String userId) {
+    // TODO: Implement real inbox service integration
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Inbox functionality will be implemented soon'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _editInboxItem(String itemId, String newContent) {
+    // TODO: Implement real inbox service integration
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Inbox functionality will be implemented soon'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _deleteInboxItem(String itemId) {
+    // TODO: Implement real inbox service integration
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Inbox functionality will be implemented soon'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _convertInboxToTask(InboxItem item) {
+    _showConvertToTaskDialog(item);
+  }
+
+  Future<void> _showConvertToTaskDialog(InboxItem item) async {
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser == null) return;
+
+    final userBoardsAsync = ref.read(userBoardsProvider);
+
+    await userBoardsAsync.when(
+      data: (boards) async {
+        if (boards.isEmpty) {
+          // Create default board first
+          await _createDefaultBoard(currentUser.id);
+          // Refresh boards
+          ref.invalidate(userBoardsProvider);
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          final updatedBoardsAsync = ref.read(userBoardsProvider);
+          await updatedBoardsAsync.when(
+            data: (updatedBoards) async {
+              if (updatedBoards.isEmpty) {
+                throw Exception('Failed to create default board');
+              }
+              await _showTaskConversionDialog(
+                  item, updatedBoards.first, currentUser.id);
+            },
+            loading: () async {
+              throw Exception('Loading boards...');
+            },
+            error: (error, stack) async {
+              throw Exception('Error loading updated boards: $error');
+            },
+          );
+        } else {
+          await _showTaskConversionDialog(item, boards.first, currentUser.id);
+        }
+      },
+      loading: () async {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Loading boards...')),
+        );
+      },
+      error: (error, stack) async {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading boards: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showTaskConversionDialog(
+      InboxItem item, Board board, String userId) async {
+    if (!mounted) return;
+
+    final result = await showDialog<CreateTaskRequest>(
+      context: context,
+      builder: (context) => _ConvertToTaskDialog(
+        inboxItem: item,
+        boardId: board.id,
+        userId: userId,
+        availableTags: _availableTags,
+      ),
+    );
+
+    if (result != null) {
+      try {
+        final taskService = ref.read(taskServiceProvider);
+        await taskService.createTask(result);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text('Task "${result.title}" created from inbox item! 🎉'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+
+          // Remove the inbox item after successful conversion
+          _deleteInboxItem(item.id);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error creating task: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+}
+
+/// Dialog for converting inbox item to task
+class _ConvertToTaskDialog extends StatefulWidget {
+  const _ConvertToTaskDialog({
+    required this.inboxItem,
+    required this.boardId,
+    required this.userId,
+    required this.availableTags,
+  });
+
+  final InboxItem inboxItem;
+  final String boardId;
+  final String userId;
+  final List<String> availableTags;
+
+  @override
+  State<_ConvertToTaskDialog> createState() => _ConvertToTaskDialogState();
+}
+
+class _ConvertToTaskDialogState extends State<_ConvertToTaskDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+
+  DateTime? _selectedDate;
+  TaskRecurrence _selectedRecurrence = TaskRecurrence.none;
+  List<String> _selectedTags = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.inboxItem.content);
+    _descriptionController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Convert to Task'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Title field
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Task Title',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a task title';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Description field
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16),
+
+              // Due date picker
+              ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: Text(_selectedDate == null
+                    ? 'No due date'
+                    : 'Due: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'),
+                trailing: _selectedDate != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(() => _selectedDate = null),
+                      )
+                    : null,
+                onTap: _selectDate,
+              ),
+              const SizedBox(height: 16),
+
+              // Recurrence dropdown
+              DropdownButtonFormField<TaskRecurrence>(
+                value: _selectedRecurrence,
+                decoration: const InputDecoration(
+                  labelText: 'Recurrence',
+                  border: OutlineInputBorder(),
+                ),
+                items: TaskRecurrence.values.map((recurrence) {
+                  return DropdownMenuItem(
+                    value: recurrence,
+                    child: Text(_getRecurrenceLabel(recurrence)),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _selectedRecurrence = value);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Tags selection
+              Wrap(
+                spacing: 8,
+                children: widget.availableTags.map((tag) {
+                  final isSelected = _selectedTags.contains(tag);
+                  return FilterChip(
+                    label: Text(tag),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedTags.add(tag);
+                        } else {
+                          _selectedTags.remove(tag);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _convertToTask,
+          child: const Text('Create Task'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _selectDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (date != null) {
+      setState(() => _selectedDate = date);
+    }
+  }
+
+  String _getRecurrenceLabel(TaskRecurrence recurrence) {
+    switch (recurrence) {
+      case TaskRecurrence.none:
+        return 'None';
+      case TaskRecurrence.daily:
+        return 'Daily';
+      case TaskRecurrence.weekly:
+        return 'Weekly';
+      case TaskRecurrence.monthly:
+        return 'Monthly';
+      case TaskRecurrence.custom:
+        return 'Custom';
+    }
+  }
+
+  void _convertToTask() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final request = CreateTaskRequest(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim().isEmpty
+          ? null
+          : _descriptionController.text.trim(),
+      boardId: widget.boardId,
+      recurrence: _selectedRecurrence,
+      dueDate: _selectedDate,
+      tags: _selectedTags,
+      createdBy: widget.userId,
+    );
+
+    Navigator.of(context).pop(request);
+  }
+}

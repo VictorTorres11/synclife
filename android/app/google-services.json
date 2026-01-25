@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "835942942857",
+    "project_id": "synclife-e3763",
+    "storage_bucket": "synclife-e3763.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:835942942857:android:8da763664fd47c69a89e58",
+        "android_client_info": {
+          "package_name": "com.synclife.synclife_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBI3_7kYm6vhs1u5ZyGfUjF4bZFGNEx58Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

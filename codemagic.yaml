@@ -33,9 +33,12 @@ workflows:
       - name: Build debug APK
         script: |
           flutter build apk --debug --no-tree-shake-icons --android-skip-build-dependency-validation
-      - name: Build release APK
+      - name: Build release APK  
         script: |
           flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
+      - name: Build AAB for Play Store
+        script: |
+          flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation
     artifacts:
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/mapping.txt

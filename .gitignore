@@ -89,7 +89,6 @@ firebase-debug.log
 firestore-debug.log
 
 # Generated files
-**/*.g.dart
 **/*.freezed.dart
 **/*.mocks.dart
 

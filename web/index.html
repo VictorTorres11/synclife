@@ -18,12 +18,14 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="SyncLife - Collaborative task management with gamification">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="synclife_app">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SyncLife">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
@@ -32,8 +34,24 @@
   <!-- Google Sign-In Client ID for web -->
   <meta name="google-signin-client_id" content="835942942857-h2j2lefcguk95ee6vukt690b9ut9vgip.apps.googleusercontent.com">
 
-  <title>synclife_app</title>
+  <!-- SEO and Social Media -->
+  <meta property="og:title" content="SyncLife">
+  <meta property="og:description" content="Collaborative task management with gamification">
+  <meta property="og:image" content="icons/Icon-512.png">
+  <meta property="og:url" content="https://synclife.app">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <title>SyncLife</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Preload critical resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
   
   <!-- Firebase Messaging Service Worker -->
   <script>
@@ -47,8 +65,47 @@
         });
     }
   </script>
+  
+  <!-- Loading styles -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0175C2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .loading {
+      color: white;
+      text-align: center;
+    }
+    
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
+  <div class="loading">
+    <div class="spinner"></div>
+    <p>Loading SyncLife...</p>
+  </div>
+  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

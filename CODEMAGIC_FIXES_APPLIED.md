@@ -18,18 +18,48 @@
 - Gerados todos os arquivos necessários do projeto Xcode
 - Configuração iOS agora está completa
 
-### 3. Configuração do Codemagic Otimizada
+### 3. Erro de Compilação Kotlin/Gradle
+**Problema:** `Unresolved reference: filePermissions` e outros erros de Kotlin
+
+**Solução Aplicada:**
+- Atualizado Kotlin para versão 1.9.24
+- Atualizado Android Gradle Plugin para 8.3.2
+- Atualizado Gradle Wrapper para 8.6
+- Mudado Java target para versão 17
+- Atualizado Firebase BOM para 33.5.1
+- Atualizado Google Services para 4.4.2
+
+### 4. Configuração do Codemagic Otimizada
 
 **Mudanças no codemagic.yaml:**
-- Removido workflow iOS temporariamente (pode ser reativado depois)
+- Especificado Flutter 3.24.3 (versão estável específica)
+- Adicionado Java 17 como ambiente
+- Adicionado `flutter clean` antes dos builds
 - Focado em builds Android que são mais estáveis
-- Adicionados 3 workflows otimizados:
+- 3 workflows otimizados:
   - `android-workflow`: Build completo com testes
   - `android-debug-simple`: Build rápido para desenvolvimento
   - `web-workflow`: Build para web (opcional)
 
-## Versões Finais das Dependências Principais
+## Versões Atualizadas
 
+### Android/Gradle
+```gradle
+# android/build.gradle
+kotlin_version = '1.9.24'
+gradle = '8.3.2'
+google-services = '4.4.2'
+firebase-crashlytics-gradle = '3.0.2'
+
+# android/gradle/wrapper/gradle-wrapper.properties
+gradle-8.6-all.zip
+
+# android/app/build.gradle
+Java 17
+firebase-bom:33.5.1
+```
+
+### Flutter Dependencies
 ```yaml
 # Firebase (versões compatíveis)
 firebase_core: ^3.15.2
@@ -69,7 +99,7 @@ google_mobile_ads: ^5.3.1
 flutter clean
 flutter pub get
 
-# Testar build Android
+# Testar build Android (se tiver Android SDK)
 flutter build apk --debug
 
 # Testar build web
@@ -83,7 +113,8 @@ flutter test test/core/performance/
 ## Status
 ✅ Dependências corrigidas e compatíveis
 ✅ Estrutura iOS recriada
-✅ Configuração Codemagic otimizada
+✅ Configurações Android/Gradle atualizadas
+✅ Configuração Codemagic otimizada com Flutter 3.24.3
 ✅ Testado localmente com sucesso
 
 O projeto agora deve fazer build com sucesso no Codemagic!

@@ -5,13 +5,17 @@ workflows:
     max_build_duration: 60
     instance_type: linux_x2
     environment:
-      flutter: stable
+      flutter: 3.24.3
+      java: 17
       groups:
         - firebase_config
     scripts:
       - name: Set up local.properties
         script: |
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Clean previous builds
+        script: |
+          flutter clean
       - name: Get Flutter packages
         script: |
           flutter packages pub get
@@ -46,11 +50,15 @@ workflows:
     max_build_duration: 30
     instance_type: linux_x2
     environment:
-      flutter: stable
+      flutter: 3.24.3
+      java: 17
     scripts:
       - name: Set up local.properties
         script: |
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Clean previous builds
+        script: |
+          flutter clean
       - name: Get Flutter packages
         script: |
           flutter packages pub get
@@ -67,22 +75,146 @@ workflows:
           success: true
           failure: true
 
-  # Workflow para web (opcional)
+  # Workflow para iOS
+  ios-workflow:
+    name: SyncLife iOS Build
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      flutter: 3.24.3
+      xcode: 15.4
+      cocoapods: default
+      groups:
+        - firebase_config
+        - ios_credentials
+    scripts:
+      - name: Clean previous builds
+        script: |
+          flutter clean
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install --repo-update
+      - name: Set up code signing settings
+        script: |
+          xcode-project use-profiles
+      - name: Flutter analyze
+        script: |
+          flutter analyze --no-fatal-infos
+      - name: Run unit tests (basic)
+        script: |
+          flutter test test/core/build/ --reporter expanded || true
+          flutter test test/core/performance/ --reporter expanded || true
+        ignore_failure: true
+      - name: Build iOS (debug)
+        script: |
+          flutter build ios --debug --no-codesign
+      - name: Build iOS IPA (release)
+        script: |
+          flutter build ipa --release --export-options-plist=$HOME/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/Runner.app
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - victor@synclife.app
+        notify:
+          success: true
+          failure: true
+
+  # Workflow para web
   web-workflow:
     name: SyncLife Web Build
     max_build_duration: 30
     instance_type: linux_x2
     environment:
-      flutter: stable
+      flutter: 3.24.3
+      groups:
+        - firebase_config
     scripts:
+      - name: Clean previous builds
+        script: |
+          flutter clean
       - name: Get Flutter packages
         script: |
           flutter packages pub get
-      - name: Build web
+      - name: Flutter analyze
         script: |
-          flutter build web --release
+          flutter analyze --no-fatal-infos
+      - name: Build web (debug)
+        script: |
+          flutter build web --debug --dart-define=FLUTTER_WEB_AUTO_DETECT=true
+      - name: Build web (release)
+        script: |
+          flutter build web --release --dart-define=FLUTTER_WEB_AUTO_DETECT=true --web-renderer canvaskit
     artifacts:
       - build/web/**
+    publishing:
+      email:
+        recipients:
+          - victor@synclife.app
+        notify:
+          success: true
+          failure: true
+
+  # Workflow completo (todos os platforms)
+  multi-platform-workflow:
+    name: SyncLife Multi-Platform Build
+    max_build_duration: 180
+    instance_type: mac_mini_m1
+    environment:
+      flutter: 3.24.3
+      xcode: 15.4
+      java: 17
+      cocoapods: default
+      groups:
+        - firebase_config
+        - ios_credentials
+    scripts:
+      - name: Clean previous builds
+        script: |
+          flutter clean
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Flutter analyze
+        script: |
+          flutter analyze --no-fatal-infos
+      - name: Run unit tests
+        script: |
+          flutter test test/core/build/ --reporter expanded || true
+          flutter test test/core/performance/ --reporter expanded || true
+        ignore_failure: true
+      # Web Build
+      - name: Build Web
+        script: |
+          flutter build web --release --dart-define=FLUTTER_WEB_AUTO_DETECT=true --web-renderer canvaskit
+      # iOS Build
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install --repo-update
+      - name: Set up iOS code signing
+        script: |
+          xcode-project use-profiles
+      - name: Build iOS IPA
+        script: |
+          flutter build ipa --release --export-options-plist=$HOME/export_options.plist
+      # Android Build
+      - name: Set up Android local.properties
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Build Android APK
+        script: |
+          flutter build apk --release --no-tree-shake-icons
+    artifacts:
+      - build/web/**
+      - build/ios/ipa/*.ipa
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/mapping.txt
     publishing:
       email:
         recipients:

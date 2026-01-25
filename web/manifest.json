@@ -1,13 +1,16 @@
 {
-    "name": "synclife_app",
-    "short_name": "synclife_app",
+    "name": "SyncLife - Collaborative Task Management",
+    "short_name": "SyncLife",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Collaborative task management with gamification features",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "categories": ["productivity", "business"],
+    "lang": "en",
+    "scope": "/",
     "icons": [
         {
             "src": "icons/Icon-192.png",
@@ -30,6 +33,22 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "New Task",
+            "short_name": "New Task",
+            "description": "Create a new task",
+            "url": "/tasks/new",
+            "icons": [{ "src": "icons/Icon-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Dashboard",
+            "short_name": "Dashboard",
+            "description": "View your dashboard",
+            "url": "/dashboard",
+            "icons": [{ "src": "icons/Icon-192.png", "sizes": "192x192" }]
         }
     ]
 }

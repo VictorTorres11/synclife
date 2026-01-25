@@ -52,20 +52,6 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    flavorDimensions "default"
-    productFlavors {
-        dev {
-            dimension "default"
-            applicationIdSuffix ".dev"
-            versionNameSuffix "-dev"
-            resValue "string", "app_name", "SyncLife Dev"
-        }
-        prod {
-            dimension "default"
-            resValue "string", "app_name", "SyncLife"
-        }
-    }
-
     buildTypes {
         debug {
             debuggable true

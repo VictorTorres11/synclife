@@ -71,7 +71,13 @@ class _EnhancedInviteDialogState extends ConsumerState<EnhancedInviteDialog>
                 children: [
                   SendInviteTab(board: widget.board),
                   PendingInvitesTab(board: widget.board),
-                  InviteHistoryTab(board: widget.board),
+                  // InviteHistoryTab(board: widget.board), // Commented out until implemented
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    child: const Center(
+                      child: Text('Invite History - Coming Soon'),
+                    ),
+                  ),
                 ],
               ),
             ),

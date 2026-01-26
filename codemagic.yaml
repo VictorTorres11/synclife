@@ -1,7 +1,7 @@
 workflows:
-  # Workflow principal para Android
+  # Workflow principal para Android (APK apenas)
   android-workflow:
-    name: SyncLife Android Build
+    name: SyncLife Android APK Build
     max_build_duration: 60
     instance_type: linux_x2
     environment:
@@ -36,9 +36,6 @@ workflows:
       - name: Build release APK  
         script: |
           flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
-      - name: Build AAB for Play Store
-        script: |
-          flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation
     artifacts:
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/mapping.txt
@@ -76,6 +73,51 @@ workflows:
           flutter build apk --debug --no-tree-shake-icons --android-skip-build-dependency-validation
     artifacts:
       - build/**/outputs/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - victor@synclife.app
+        notify:
+          success: true
+          failure: true
+
+  # Workflow para AAB (Google Play Store)
+  android-playstore:
+    name: SyncLife Android AAB (Play Store)
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      flutter: 3.24.5
+      java: 17
+      groups:
+        - firebase_config
+    scripts:
+      - name: Set up local.properties
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Clean previous builds
+        script: |
+          flutter clean
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Generate code with build_runner
+        script: |
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Flutter analyze
+        script: |
+          flutter analyze --no-fatal-infos
+      - name: Run unit tests (basic)
+        script: |
+          flutter test test/core/build/ --reporter expanded || true
+          flutter test test/core/performance/ --reporter expanded || true
+        ignore_failure: true
+      - name: Build AAB for Play Store
+        script: |
+          flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation
+    artifacts:
+      - build/**/outputs/**/*.aab
+      - build/**/outputs/**/mapping.txt
     publishing:
       email:
         recipients:
@@ -225,8 +267,9 @@ workflows:
       - name: Set up Android local.properties
         script: |
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
-      - name: Build Android APK
+      - name: Build Android APK (debug and release)
         script: |
+          flutter build apk --debug --no-tree-shake-icons --android-skip-build-dependency-validation
           flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
     artifacts:
       - build/web/**

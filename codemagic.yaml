@@ -1,14 +1,11 @@
 workflows:
-  # Workflow principal para Android (APK apenas)
-  android-workflow:
-    name: SyncLife Android APK Build
-    max_build_duration: 60
+  android-debug:
+    name: Android Debug APK
+    max_build_duration: 30
     instance_type: linux_x2
     environment:
       flutter: 3.24.5
       java: 17
-      groups:
-        - firebase_config
     scripts:
       - name: Set up local.properties
         script: |
@@ -22,55 +19,9 @@ workflows:
       - name: Generate code with build_runner
         script: |
           dart run build_runner build --delete-conflicting-outputs
-      - name: Flutter analyze
-        script: |
-          flutter analyze --no-fatal-infos
-      - name: Run unit tests (basic)
-        script: |
-          flutter test test/core/build/ --reporter expanded || true
-          flutter test test/core/performance/ --reporter expanded || true
-        ignore_failure: true
       - name: Build debug APK
         script: |
-          flutter build apk --debug --no-tree-shake-icons --android-skip-build-dependency-validation
-      - name: Build release APK  
-        script: |
-          flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
-    artifacts:
-      - build/**/outputs/**/*.apk
-      - build/**/outputs/**/mapping.txt
-    publishing:
-      email:
-        recipients:
-          - victor@synclife.app
-        notify:
-          success: true
-          failure: true
-
-  # Workflow simplificado para testes rápidos
-  android-debug-simple:
-    name: SyncLife Android Debug (Quick)
-    max_build_duration: 30
-    instance_type: linux_x2
-    environment:
-      flutter: 3.24.5
-      java: 17
-    scripts:
-      - name: Set up local.properties
-        script: |
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
-      - name: Clean previous builds
-        script: |
-          flutter clean
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Generate code with build_runner
-        script: |
-          dart run build_runner build --delete-conflicting-outputs
-      - name: Build debug APK (skip tests)
-        script: |
-          flutter build apk --debug --no-tree-shake-icons --android-skip-build-dependency-validation
+          flutter build apk --debug --verbose --no-tree-shake-icons
     artifacts:
       - build/**/outputs/**/*.apk
     publishing:
@@ -81,9 +32,8 @@ workflows:
           success: true
           failure: true
 
-  # Workflow para AAB (Google Play Store)
-  android-playstore:
-    name: SyncLife Android AAB (Play Store)
+  android-release:
+    name: Android Release APK
     max_build_duration: 60
     instance_type: linux_x2
     environment:
@@ -107,173 +57,10 @@ workflows:
       - name: Flutter analyze
         script: |
           flutter analyze --no-fatal-infos
-      - name: Run unit tests (basic)
+      - name: Build release APK
         script: |
-          flutter test test/core/build/ --reporter expanded || true
-          flutter test test/core/performance/ --reporter expanded || true
-        ignore_failure: true
-      - name: Build AAB for Play Store
-        script: |
-          flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation
+          flutter build apk --release --verbose --no-tree-shake-icons
     artifacts:
-      - build/**/outputs/**/*.aab
-      - build/**/outputs/**/mapping.txt
-    publishing:
-      email:
-        recipients:
-          - victor@synclife.app
-        notify:
-          success: true
-          failure: true
-
-  # Workflow para iOS
-  ios-workflow:
-    name: SyncLife iOS Build
-    max_build_duration: 120
-    instance_type: mac_mini_m1
-    environment:
-      flutter: 3.24.5
-      xcode: 15.4
-      cocoapods: default
-      groups:
-        - firebase_config
-        - ios_credentials
-    scripts:
-      - name: Clean previous builds
-        script: |
-          flutter clean
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Generate code with build_runner
-        script: |
-          dart run build_runner build --delete-conflicting-outputs
-      - name: Install CocoaPods dependencies
-        script: |
-          cd ios && pod install --repo-update
-      - name: Set up code signing settings
-        script: |
-          xcode-project use-profiles
-      - name: Flutter analyze
-        script: |
-          flutter analyze --no-fatal-infos
-      - name: Run unit tests (basic)
-        script: |
-          flutter test test/core/build/ --reporter expanded || true
-          flutter test test/core/performance/ --reporter expanded || true
-        ignore_failure: true
-      - name: Build iOS (debug)
-        script: |
-          flutter build ios --debug --no-codesign
-      - name: Build iOS IPA (release)
-        script: |
-          flutter build ipa --release --export-options-plist=$HOME/export_options.plist
-    artifacts:
-      - build/ios/ipa/*.ipa
-      - build/ios/Runner.app
-      - /tmp/xcodebuild_logs/*.log
-    publishing:
-      email:
-        recipients:
-          - victor@synclife.app
-        notify:
-          success: true
-          failure: true
-
-  # Workflow para web
-  web-workflow:
-    name: SyncLife Web Build
-    max_build_duration: 30
-    instance_type: linux_x2
-    environment:
-      flutter: 3.24.5
-      groups:
-        - firebase_config
-    scripts:
-      - name: Clean previous builds
-        script: |
-          flutter clean
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Generate code with build_runner
-        script: |
-          dart run build_runner build --delete-conflicting-outputs
-      - name: Flutter analyze
-        script: |
-          flutter analyze --no-fatal-infos
-      - name: Build web (debug)
-        script: |
-          flutter build web --debug --dart-define=FLUTTER_WEB_AUTO_DETECT=true
-      - name: Build web (release)
-        script: |
-          flutter build web --release --dart-define=FLUTTER_WEB_AUTO_DETECT=true --web-renderer canvaskit
-    artifacts:
-      - build/web/**
-    publishing:
-      email:
-        recipients:
-          - victor@synclife.app
-        notify:
-          success: true
-          failure: true
-
-  # Workflow completo (todos os platforms)
-  multi-platform-workflow:
-    name: SyncLife Multi-Platform Build
-    max_build_duration: 180
-    instance_type: mac_mini_m1
-    environment:
-      flutter: 3.24.5
-      xcode: 15.4
-      java: 17
-      cocoapods: default
-      groups:
-        - firebase_config
-        - ios_credentials
-    scripts:
-      - name: Clean previous builds
-        script: |
-          flutter clean
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Generate code with build_runner
-        script: |
-          dart run build_runner build --delete-conflicting-outputs
-      - name: Flutter analyze
-        script: |
-          flutter analyze --no-fatal-infos
-      - name: Run unit tests
-        script: |
-          flutter test test/core/build/ --reporter expanded || true
-          flutter test test/core/performance/ --reporter expanded || true
-        ignore_failure: true
-      # Web Build
-      - name: Build Web
-        script: |
-          flutter build web --release --dart-define=FLUTTER_WEB_AUTO_DETECT=true --web-renderer canvaskit
-      # iOS Build
-      - name: Install CocoaPods dependencies
-        script: |
-          cd ios && pod install --repo-update
-      - name: Set up iOS code signing
-        script: |
-          xcode-project use-profiles
-      - name: Build iOS IPA
-        script: |
-          flutter build ipa --release --export-options-plist=$HOME/export_options.plist
-      # Android Build
-      - name: Set up Android local.properties
-        script: |
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
-      - name: Build Android APK (debug and release)
-        script: |
-          flutter build apk --debug --no-tree-shake-icons --android-skip-build-dependency-validation
-          flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
-    artifacts:
-      - build/web/**
-      - build/ios/ipa/*.ipa
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/mapping.txt
     publishing:

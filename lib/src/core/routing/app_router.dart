@@ -3,51 +3,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
-import '../../features/auth/presentation/providers/auth_providers.dart';
-import '../../features/auth/presentation/screens/data_settings_screen.dart';
-import '../../features/auth/presentation/screens/language_settings_screen.dart';
-import '../../features/auth/presentation/screens/privacy_settings_screen.dart';
-import '../../features/auth/presentation/screens/profile_screen.dart';
-import '../../features/gamification/presentation/screens/gamification_dashboard_screen.dart';
-import '../../features/monetization/presentation/screens/subscription_management_screen.dart';
-import '../../features/notifications/presentation/screens/notification_center_screen.dart';
-import '../../features/notifications/presentation/screens/notification_settings_screen.dart';
-import '../../features/rewards/presentation/screens/rewards_store_screen.dart';
-import '../../features/tasks/domain/models/task.dart';
-import '../../features/tasks/presentation/pages/task_detail_page.dart';
 import '../../features/tasks/presentation/pages/tasks_page.dart';
-import '../../features/tasks/presentation/screens/board_management_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-
   return GoRouter(
     initialLocation: '/login',
-    redirect: (context, state) {
-      final isAuthenticated = authState.when(
-        data: (user) => user != null,
-        loading: () => false,
-        error: (_, __) => false,
-      );
-
-      final isLoginPage = state.matchedLocation == '/login';
-
-      // If user is authenticated and on login page, redirect to tasks
-      if (isAuthenticated && isLoginPage) {
-        return '/tasks';
-      }
-
-      // If user is not authenticated and not on login page, redirect to login
-      if (!isAuthenticated && !isLoginPage) {
-        return '/login';
-      }
-
-      return null; // No redirect needed
-    },
     routes: [
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/tasks',
+        builder: (context, state) => const TasksPage(),
+      ),
+      GoRoute(
+        path: '/',
+        redirect: (context, state) => '/login',
+      ),
+    ],
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error: ${state.error}'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => context.go('/login'),
+              child: const Text('Go to Login'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+});
       ),
       GoRoute(
         path: '/tasks',

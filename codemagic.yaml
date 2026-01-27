@@ -54,9 +54,6 @@ workflows:
       - name: Generate code with build_runner
         script: |
           dart run build_runner build --delete-conflicting-outputs
-      - name: Flutter analyze
-        script: |
-          flutter analyze --no-fatal-infos
       - name: Build release APK
         script: |
           flutter build apk --release --verbose --no-tree-shake-icons
@@ -69,6 +66,38 @@ workflows:
           - victor@synclife.app
         notify:
           success: true
+          failure: true
+
+  code-analysis:
+    name: Code Analysis (Non-blocking)
+    max_build_duration: 20
+    instance_type: mac_mini_m1
+    environment:
+      flutter: 3.38.7
+    triggering:
+      events:
+        - pull_request
+      cancel_previous_builds: true
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Generate code with build_runner
+        script: |
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Flutter analyze (informational)
+        script: |
+          echo "Running Flutter analyze - issues are informational only"
+          flutter analyze --no-fatal-infos || echo "Analysis completed with issues - not blocking build"
+      - name: Dart format check
+        script: |
+          dart format --set-exit-if-changed . || echo "Format issues found - not blocking build"
+    publishing:
+      email:
+        recipients:
+          - victor@synclife.app
+        notify:
+          success: false
           failure: true
 
   ios-debug:

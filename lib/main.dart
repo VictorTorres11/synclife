@@ -5,6 +5,7 @@ import 'package:firebase_performance/firebase_performance.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'firebase_options.dart';
 import 'src/app.dart';
 
@@ -50,6 +51,13 @@ void main() async {
       await FirebasePerformance.instance.setPerformanceCollectionEnabled(true);
     } catch (e) {
       debugPrint('Error enabling performance monitoring: $e');
+    }
+
+    // Initialize Google Mobile Ads (with error handling)
+    try {
+      await MobileAds.instance.initialize();
+    } catch (e) {
+      debugPrint('Error initializing Google Mobile Ads: $e');
     }
 
     runApp(

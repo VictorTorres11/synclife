@@ -16,7 +16,13 @@ class FirebaseAuthService implements AuthService {
     GoogleSignIn? googleSignIn,
     required this.userProfileService,
   })  : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+        _googleSignIn = googleSignIn ??
+            GoogleSignIn(
+              scopes: ['email', 'profile'],
+              // Use o Web Client ID do Firebase Console
+              // Substitua pelo seu Web Client ID real do Firebase
+              // serverClientId: '835942942857-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com',
+            );
 
   final firebase_auth.FirebaseAuth _firebaseAuth;
   final GoogleSignIn _googleSignIn;
@@ -65,9 +71,15 @@ class FirebaseAuthService implements AuthService {
 
       final firebaseUser = userCredential.user;
       return firebaseUser != null ? User.fromFirebaseUser(firebaseUser) : null;
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      // Handle Firebase Auth specific errors
+      throw Exception('Firebase Auth Error: ${e.code} - ${e.message}');
+    } on Exception catch (e) {
+      // Handle other exceptions (including Google Sign-In errors)
+      throw Exception('Google Sign-In Error: ${e.toString()}');
     } catch (e) {
-      // Handle sign-in errors
-      rethrow;
+      // Handle any other errors
+      throw Exception('Unknown error during Google Sign-In: ${e.toString()}');
     }
   }
 

@@ -4,8 +4,10 @@ workflows:
     max_build_duration: 30
     instance_type: linux_x2
     environment:
-      flutter: 3.24.5
+      flutter: 3.38.7
       java: 17
+      android_signing:
+        - keystore_reference
     scripts:
       - name: Set up local.properties
         script: |
@@ -15,7 +17,7 @@ workflows:
           flutter clean
       - name: Get Flutter packages
         script: |
-          flutter packages pub get
+          flutter pub get
       - name: Generate code with build_runner
         script: |
           dart run build_runner build --delete-conflicting-outputs
@@ -37,8 +39,10 @@ workflows:
     max_build_duration: 60
     instance_type: linux_x2
     environment:
-      flutter: 3.24.5
+      flutter: 3.38.7
       java: 17
+      android_signing:
+        - keystore_reference
       groups:
         - firebase_config
     scripts:
@@ -50,7 +54,7 @@ workflows:
           flutter clean
       - name: Get Flutter packages
         script: |
-          flutter packages pub get
+          flutter pub get
       - name: Generate code with build_runner
         script: |
           dart run build_runner build --delete-conflicting-outputs
@@ -63,6 +67,40 @@ workflows:
     artifacts:
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - victor@synclife.app
+        notify:
+          success: true
+          failure: true
+
+  ios-debug:
+    name: iOS Debug Build
+    max_build_duration: 30
+    instance_type: mac_mini_m1
+    environment:
+      flutter: 3.38.7
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Clean previous builds
+        script: |
+          flutter clean
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Generate code with build_runner
+        script: |
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install
+      - name: Build iOS debug
+        script: |
+          flutter build ios --debug --no-codesign --verbose
+    artifacts:
+      - build/ios/iphoneos/*.app
     publishing:
       email:
         recipients:

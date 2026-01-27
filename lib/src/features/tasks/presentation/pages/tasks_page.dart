@@ -270,9 +270,8 @@ class _TasksPageState extends ConsumerState<TasksPage>
   }
 
   Widget _buildInboxTab(String userId) {
-    // TODO: Implement real inbox service integration
-    // For now, using empty list until inbox service is implemented
-    final List<InboxItem> inboxItems = [];
+    // Get inbox items from state
+    final inboxItems = ref.watch(inboxItemsProvider);
 
     return SingleChildScrollView(
       child: InboxWidget(
@@ -563,33 +562,71 @@ class _TasksPageState extends ConsumerState<TasksPage>
   }
 
   void _addInboxItem(String content, String userId) {
-    // TODO: Implement real inbox service integration
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Inbox functionality will be implemented soon'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    try {
+      final newItem = InboxItem(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        content: content,
+        userId: userId,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      ref.read(inboxItemsProvider.notifier).addItem(newItem);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lembrete adicionado com sucesso!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao adicionar lembrete: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _editInboxItem(String itemId, String newContent) {
-    // TODO: Implement real inbox service integration
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Inbox functionality will be implemented soon'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    try {
+      ref.read(inboxItemsProvider.notifier).updateItem(itemId, newContent);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lembrete atualizado com sucesso!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao atualizar lembrete: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _deleteInboxItem(String itemId) {
-    // TODO: Implement real inbox service integration
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Inbox functionality will be implemented soon'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    try {
+      ref.read(inboxItemsProvider.notifier).removeItem(itemId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lembrete removido com sucesso!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao remover lembrete: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _convertInboxToTask(InboxItem item) {

@@ -61,10 +61,11 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
     return AnimatedBuilder(
       animation: _fadeAnimation,
       builder: (context, child) {
+        final theme = Theme.of(context);
         return Opacity(
           opacity: _fadeAnimation.value,
           child: Material(
-            color: Colors.black.withValues(alpha: 0.7),
+            color: theme.colorScheme.surface.withValues(alpha: 0.9),
             child: Stack(
               children: [
                 // Background tap to skip
@@ -156,8 +157,8 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
                   ),
                   child: Text(
                     '${_currentStep + 1}/${widget.steps.length}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: theme.colorScheme.onPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),

@@ -223,98 +223,117 @@ class _AppDrawer extends ConsumerWidget {
 
             // Navigation Items
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
+              child: Column(
                 children: [
-                  _DrawerSection(
-                    title: 'Navegação',
-                    items: [
-                      _DrawerItem(
-                        icon: Icons.task_alt,
-                        title: 'Minhas Tarefas',
-                        onTap: () {
-                          _navigateWithAnimation(context, '/tasks');
-                        },
-                      ),
-                      _DrawerItem(
-                        icon: Icons.dashboard,
-                        title: 'Quadros',
-                        onTap: () {
-                          _navigateWithAnimation(context, '/boards');
-                        },
-                      ),
-                      _DrawerItem(
-                        icon: Icons.notifications,
-                        title: 'Notificações',
-                        onTap: () {
-                          _navigateWithAnimation(context, '/notifications');
-                        },
-                      ),
-                    ],
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        _DrawerSection(
+                          title: 'Navegação',
+                          items: [
+                            _DrawerItem(
+                              icon: Icons.task_alt,
+                              title: 'Minhas Tarefas',
+                              onTap: () {
+                                _navigateWithAnimation(context, '/tasks');
+                              },
+                            ),
+                            _DrawerItem(
+                              icon: Icons.dashboard,
+                              title: 'Quadros',
+                              onTap: () {
+                                _navigateWithAnimation(context, '/boards');
+                              },
+                            ),
+                            _DrawerItem(
+                              icon: Icons.notifications,
+                              title: 'Notificações',
+                              onTap: () {
+                                _navigateWithAnimation(
+                                    context, '/notifications');
+                              },
+                            ),
+                          ],
+                        ),
+                        const Divider(),
+                        _DrawerSection(
+                          title: 'Gamificação',
+                          items: [
+                            _DrawerItem(
+                              icon: Icons.emoji_events,
+                              title: 'Dashboard',
+                              onTap: () {
+                                _navigateWithAnimation(
+                                    context, '/gamification');
+                              },
+                            ),
+                            _DrawerItem(
+                              icon: Icons.store,
+                              title: 'Loja FluxoCoins',
+                              onTap: () {
+                                _navigateWithAnimation(context, '/store');
+                              },
+                            ),
+                          ],
+                        ),
+                        const Divider(),
+                        _DrawerSection(
+                          title: 'Configurações',
+                          items: [
+                            _DrawerItem(
+                              icon: Icons.person,
+                              title: 'Perfil',
+                              onTap: () {
+                                _navigateWithAnimation(context, '/profile');
+                              },
+                            ),
+                            _DrawerItem(
+                              icon: Icons.workspace_premium,
+                              title: 'Assinatura Premium',
+                              onTap: () {
+                                _navigateWithAnimation(
+                                    context, '/subscription');
+                              },
+                            ),
+                            _DrawerItem(
+                              icon: Icons.settings,
+                              title: 'Configurações',
+                              onTap: () {
+                                _navigateWithAnimation(context, '/settings');
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const Divider(),
-                  _DrawerSection(
-                    title: 'Gamificação',
-                    items: [
-                      _DrawerItem(
-                        icon: Icons.emoji_events,
-                        title: 'Dashboard',
-                        onTap: () {
-                          _navigateWithAnimation(context, '/gamification');
-                        },
-                      ),
-                      _DrawerItem(
-                        icon: Icons.store,
-                        title: 'Loja FluxoCoins',
-                        onTap: () {
-                          _navigateWithAnimation(context, '/store');
-                        },
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  _DrawerSection(
-                    title: 'Configurações',
-                    items: [
-                      _DrawerItem(
-                        icon: Icons.person,
-                        title: 'Perfil',
-                        onTap: () {
-                          _navigateWithAnimation(context, '/profile');
-                        },
-                      ),
-                      _DrawerItem(
-                        icon: Icons.workspace_premium,
-                        title: 'Assinatura Premium',
-                        onTap: () {
-                          _navigateWithAnimation(context, '/subscription');
-                        },
-                      ),
-                      _DrawerItem(
-                        icon: Icons.settings,
-                        title: 'Configurações',
-                        onTap: () {
-                          _navigateWithAnimation(context, '/settings');
-                        },
-                      ),
-                    ],
+
+                  // Logout Button - Always visible at bottom
+                  SafeArea(
+                    top: false,
+                    child: Column(
+                      children: [
+                        const Divider(),
+                        _DrawerItem(
+                          icon: Icons.logout,
+                          title: 'Sair',
+                          onTap: () async {
+                            Navigator.pop(context);
+                            await ref.read(authServiceProvider).signOut();
+                            if (context.mounted) {
+                              context.go('/login');
+                            }
+                          },
+                          isDestructive: true,
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-
-            // Logout Button
-            const Divider(),
-            _DrawerItem(
-              icon: Icons.logout,
-              title: 'Sair',
-              onTap: () async {
-                Navigator.pop(context);
-                await ref.read(authServiceProvider).signOut();
-              },
-              isDestructive: true,
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
           ],
         ),
       ),

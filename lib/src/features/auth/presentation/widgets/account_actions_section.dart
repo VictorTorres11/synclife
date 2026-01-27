@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/auth_providers.dart';
 
@@ -185,7 +186,7 @@ class AccountActionsSection extends ConsumerWidget {
                 final authService = ref.read(authServiceProvider);
                 await authService.signOut();
                 if (context.mounted) {
-                  Navigator.of(context).pushReplacementNamed('/login');
+                  context.go('/login');
                 }
               } catch (e) {
                 if (context.mounted) {

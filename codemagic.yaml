@@ -2,7 +2,7 @@ workflows:
   android-debug:
     name: Android Debug APK
     max_build_duration: 30
-    instance_type: linux_x2
+    instance_type: mac_mini_m1
     environment:
       flutter: 3.38.7
       java: 17
@@ -35,7 +35,7 @@ workflows:
   android-release:
     name: Android Release APK
     max_build_duration: 60
-    instance_type: linux_x2
+    instance_type: mac_mini_m1
     environment:
       flutter: 3.38.7
       java: 17

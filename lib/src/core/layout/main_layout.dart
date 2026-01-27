@@ -9,6 +9,7 @@ import '../onboarding/onboarding_wrapper.dart';
 import '../sync/widgets/sync_status_indicator.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_settings_widget.dart';
+import 'safe_area_wrapper.dart';
 
 /// Main layout wrapper that provides consistent navigation and drawer
 class MainLayout extends ConsumerWidget {
@@ -30,11 +31,7 @@ class MainLayout extends ConsumerWidget {
         child: Scaffold(
           appBar: AppBar(
             title: title != null ? Text(title!) : null,
-            leading: showDrawer
-                ? _DrawerMenuButton(
-                    key: SyncLifeOnboardingSteps.menuButtonKey,
-                  )
-                : null,
+            leading: showDrawer ? const _DrawerMenuButton() : null,
             actions: [
               if (actions != null) ...actions!,
               const _StatusIndicators(),
@@ -42,7 +39,9 @@ class MainLayout extends ConsumerWidget {
             ],
           ),
           drawer: showDrawer ? const _AppDrawer() : null,
-          body: child,
+          body: SafeAreaWrapper(
+            child: child,
+          ),
         ),
       );
 }
@@ -69,7 +68,7 @@ class _StatusIndicators extends ConsumerWidget {
 
 /// Notification indicator with badge
 class _NotificationIndicator extends ConsumerWidget {
-  const _NotificationIndicator({super.key});
+  const _NotificationIndicator();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -134,7 +133,7 @@ class _NotificationIndicator extends ConsumerWidget {
 
 /// Custom drawer menu button with stylized symbol
 class _DrawerMenuButton extends StatefulWidget {
-  const _DrawerMenuButton({super.key});
+  const _DrawerMenuButton();
 
   @override
   State<_DrawerMenuButton> createState() => _DrawerMenuButtonState();
@@ -325,7 +324,9 @@ class _AppDrawer extends ConsumerWidget {
   void _navigateWithAnimation(BuildContext context, String route) {
     Navigator.pop(context);
     Future.delayed(const Duration(milliseconds: 250), () {
-      context.go(route);
+      if (context.mounted) {
+        context.go(route);
+      }
     });
   }
 }

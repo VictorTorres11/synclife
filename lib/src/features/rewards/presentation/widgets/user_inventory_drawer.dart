@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/models.dart';
 import '../providers/store_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../../core/layout/safe_area_wrapper.dart';
 
 /// Bottom sheet drawer showing user's inventory
 class UserInventoryDrawer extends ConsumerWidget {
@@ -15,81 +16,84 @@ class UserInventoryDrawer extends ConsumerWidget {
     final purchasesAsync = ref.watch(userPurchasesProvider);
     final theme = Theme.of(context);
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        children: [
-          // Handle bar
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.outline.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
+    return SafeAreaWrapper(
+      top: false, // Don't add top padding as it's a bottom sheet
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
 
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.inventory,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'My Inventory',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(),
-
-          // Content
-          Expanded(
-            child: DefaultTabController(
-              length: 2,
-              child: Column(
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
                 children: [
-                  TabBar(
-                    labelColor: theme.colorScheme.primary,
-                    unselectedLabelColor:
-                        theme.colorScheme.onSurface.withOpacity(0.6),
-                    indicatorColor: theme.colorScheme.primary,
-                    tabs: const [
-                      Tab(text: 'Owned Items'),
-                      Tab(text: 'Purchase History'),
-                    ],
+                  Icon(
+                    Icons.inventory,
+                    color: theme.colorScheme.primary,
                   ),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        _buildInventoryTab(context, inventoryAsync, ref),
-                        _buildPurchaseHistoryTab(context, purchasesAsync),
-                      ],
+                  const SizedBox(width: 12),
+                  Text(
+                    'My Inventory',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            const Divider(),
+
+            // Content
+            Expanded(
+              child: DefaultTabController(
+                length: 2,
+                child: Column(
+                  children: [
+                    TabBar(
+                      labelColor: theme.colorScheme.primary,
+                      unselectedLabelColor:
+                          theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      indicatorColor: theme.colorScheme.primary,
+                      tabs: const [
+                        Tab(text: 'Owned Items'),
+                        Tab(text: 'Purchase History'),
+                      ],
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _buildInventoryTab(context, inventoryAsync, ref),
+                          _buildPurchaseHistoryTab(context, purchasesAsync),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

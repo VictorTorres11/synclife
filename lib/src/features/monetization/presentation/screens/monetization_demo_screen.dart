@@ -4,6 +4,7 @@ import '../widgets/ad_banner_widget.dart';
 import '../providers/monetization_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/services/services.dart';
+import '../../../core/layout/safe_fab_wrapper.dart';
 
 /// Demo screen showing how to integrate monetization features
 class MonetizationDemoScreen extends ConsumerWidget {
@@ -77,7 +78,9 @@ class MonetizationDemoScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: _buildFloatingActionButton(ref, user.id),
+      floatingActionButton: _buildFloatingActionButton(ref, user.id) != null
+          ? SafeFABWrapper(child: _buildFloatingActionButton(ref, user.id)!)
+          : null,
     );
   }
 

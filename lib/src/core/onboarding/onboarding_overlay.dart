@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/app_components.dart';
+import '../layout/safe_area_wrapper.dart';
 
 /// Onboarding overlay that provides guided tour with contextual explanations
 class OnboardingOverlay extends StatefulWidget {
@@ -135,7 +136,7 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
     return Positioned(
       left: AppTheme.spacingMd,
       right: AppTheme.spacingMd,
-      bottom: 120,
+      bottom: 120 + context.bottomSafeArea, // Add safe area padding
       child: AppComponents.card(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -203,7 +204,8 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
     return Positioned(
       left: AppTheme.spacingMd,
       right: AppTheme.spacingMd,
-      bottom: AppTheme.spacingMd,
+      bottom:
+          AppTheme.spacingMd + context.bottomSafeArea, // Add safe area padding
       child: Row(
         children: [
           // Skip button

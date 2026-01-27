@@ -6,8 +6,6 @@ workflows:
     environment:
       flutter: 3.38.7
       java: 17
-      android_signing:
-        - keystore_reference
     scripts:
       - name: Set up local.properties
         script: |
@@ -41,8 +39,6 @@ workflows:
     environment:
       flutter: 3.38.7
       java: 17
-      android_signing:
-        - keystore_reference
       groups:
         - firebase_config
     scripts:

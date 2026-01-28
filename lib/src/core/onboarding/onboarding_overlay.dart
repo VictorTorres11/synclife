@@ -158,7 +158,7 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
                   child: Text(
                     '${_currentStep + 1}/${widget.steps.length}',
                     style: TextStyle(
-                      color: theme.colorScheme.onPrimary,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),

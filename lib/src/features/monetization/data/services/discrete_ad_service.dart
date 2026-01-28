@@ -20,6 +20,45 @@ class DiscreteAdService {
     AdPlacements.boardCreateInterstitial: 3, // Every 3rd board creation
   };
 
+  /// Initializes the discrete ad service
+  Future<void> initialize() async {
+    await _adsService.initialize();
+  }
+
+  /// Records a user action for ad frequency tracking
+  void recordUserAction() {
+    // This method can be used to track user engagement
+    // for more sophisticated ad timing algorithms
+  }
+
+  /// Gets ad availability information for UI display
+  Future<AdAvailabilityInfo> getAdAvailabilityInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+
+    // Calculate time until next ad
+    Duration? timeUntilNextAd;
+    final lastAdTime = prefs.getInt('last_ad_general');
+    if (lastAdTime != null) {
+      final lastAd = DateTime.fromMillisecondsSinceEpoch(lastAdTime);
+      final timeSinceLastAd = now.difference(lastAd);
+      final minInterval = Duration(minutes: _minIntervalMinutes);
+      if (timeSinceLastAd < minInterval) {
+        timeUntilNextAd = minInterval - timeSinceLastAd;
+      }
+    }
+
+    // Calculate remaining ads
+    final hourlyCount = await _getAdCountInTimeframe(Duration(hours: 1));
+    final dailyCount = await _getAdCountInTimeframe(Duration(days: 1));
+
+    return AdAvailabilityInfo(
+      timeUntilNextAd: timeUntilNextAd,
+      remainingAdsToday: (_maxAdsPerDay - dailyCount).clamp(0, _maxAdsPerDay),
+      remainingAdsThisSession: (_maxAdsPerHour - hourlyCount).clamp(0, _maxAdsPerHour),
+    );
+  }
+
   /// Checks if an ad can be shown based on frequency limits
   Future<bool> canShowAd(String placementId) async {
     if (!_adsService.adsEnabled) return false;
@@ -260,4 +299,27 @@ class DiscreteAdService {
       await showBannerAdIfAllowed(placementId);
     }
   }
+}
+
+/// Information about ad availability for UI display
+class AdAvailabilityInfo {
+  const AdAvailabilityInfo({
+    this.timeUntilNextAd,
+    required this.remainingAdsToday,
+    required this.remainingAdsThisSession,
+  });
+
+  final Duration? timeUntilNextAd;
+  final int remainingAdsToday;
+  final int remainingAdsThisSession;
+}
+
+/// Ad placement constants
+class AdPlacements {
+  static const String taskListBanner = 'task_list_banner';
+  static const String boardListBanner = 'board_list_banner';
+  static const String settingsBanner = 'settings_banner';
+  static const String taskCompleteInterstitial = 'task_complete_interstitial';
+  static const String boardCreateInterstitial = 'board_create_interstitial';
+  static const String extraCoinsRewarded = 'extra_coins_rewarded';
 }

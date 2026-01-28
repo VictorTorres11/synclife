@@ -3,6 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/monetization_providers.dart';
 import '../../domain/models/user_limitations.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../data/services/discrete_ad_service.dart';
+
+/// Simple ad banner widget for basic ad placement
+class AdBannerWidget extends ConsumerWidget {
+  const AdBannerWidget({
+    super.key,
+    required this.placementId,
+    this.height = 50.0,
+  });
+
+  final String placementId;
+  final double height;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return DiscreteAdBannerWidget(
+      placementId: placementId,
+      height: height,
+    );
+  }
+}
 
 /// Widget that displays discrete banner ads for free users
 class DiscreteAdBannerWidget extends ConsumerStatefulWidget {
@@ -60,7 +82,16 @@ class _DiscreteAdBannerWidgetState
     }
 
     // Check subscription status
-    final userLimitations = await ref.read(userLimitationsProvider.future);
+    final user = ref.read(currentUserProvider);
+    if (user == null) {
+      setState(() {
+        _shouldShow = false;
+      });
+      return;
+    }
+
+    final userLimitationsAsync = ref.read(userLimitationsProvider(user.id).future);
+    final userLimitations = await userLimitationsAsync;
     if (!userLimitations.adsEnabled) {
       setState(() {
         _shouldShow = false;
@@ -160,7 +191,10 @@ class UpgradePromptWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userLimitationsAsync = ref.watch(userLimitationsProvider);
+    final user = ref.watch(currentUserProvider);
+    if (user == null) return const SizedBox.shrink();
+    
+    final userLimitationsAsync = ref.watch(userLimitationsProvider(user.id));
 
     return userLimitationsAsync.when(
       data: (limitations) {
@@ -247,7 +281,10 @@ class LimitationWarningWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final limitationsAsync = ref.watch(userLimitationsProvider);
+    final user = ref.watch(currentUserProvider);
+    if (user == null) return const SizedBox.shrink();
+    
+    final limitationsAsync = ref.watch(userLimitationsProvider(user.id));
 
     return limitationsAsync.when(
       data: (limitations) {
@@ -328,13 +365,6 @@ class LimitationWarningWidget extends ConsumerWidget {
   }
 }
 
-/// Types of limitations that can be warned about
-enum LimitationType {
-  activeTasks,
-  boards,
-  boardMembers,
-}
-
 /// Widget for showing interstitial ads at appropriate moments
 class DiscreteInterstitialAdTrigger extends ConsumerWidget {
   const DiscreteInterstitialAdTrigger({
@@ -379,7 +409,10 @@ class RewardedAdOfferWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final limitationsAsync = ref.watch(userLimitationsProvider);
+    final user = ref.watch(currentUserProvider);
+    if (user == null) return const SizedBox.shrink();
+    
+    final limitationsAsync = ref.watch(userLimitationsProvider(user.id));
 
     return limitationsAsync.when(
       data: (limitations) {

@@ -46,8 +46,8 @@ void main() {
 
     group('createDeltaBatch', () {
       test('should create batch without compression for small data', () async {
-        when(mockCompressionService
-                .shouldCompress(argThat(isA<Map<String, dynamic>>())))
+        final testData = {'deltas': []};
+        when(mockCompressionService.shouldCompress(testData))
             .thenReturn(false);
 
         final deltas = [
@@ -76,11 +76,10 @@ void main() {
       });
 
       test('should create batch with compression for large data', () async {
-        when(mockCompressionService
-                .shouldCompress(argThat(isA<Map<String, dynamic>>())))
+        final testData = {'deltas': [{'title': 'Very long task title' * 100}]};
+        when(mockCompressionService.shouldCompress(testData))
             .thenReturn(true);
-        when(mockCompressionService
-                .compress(argThat(isA<Map<String, dynamic>>())))
+        when(mockCompressionService.compress(testData))
             .thenAnswer((_) async => CompressedData(
                   data: Uint8List.fromList([1, 2, 3]),
                   checksum: 'test_checksum',

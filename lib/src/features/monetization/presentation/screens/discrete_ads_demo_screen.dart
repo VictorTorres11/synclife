@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../providers/monetization_providers.dart';
 import '../../domain/services/ads_service.dart';
+import '../../domain/models/user_limitations.dart';
 
 /// Demo screen showcasing the discrete advertisement system
 class DiscreteAdsDemoScreen extends ConsumerStatefulWidget {

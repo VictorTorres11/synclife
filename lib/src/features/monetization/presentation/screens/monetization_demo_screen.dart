@@ -4,7 +4,7 @@ import '../widgets/ad_banner_widget.dart';
 import '../providers/monetization_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/services/services.dart';
-import '../../../core/layout/safe_fab_wrapper.dart';
+import '../../domain/models/user_limitations.dart';
 
 /// Demo screen showing how to integrate monetization features
 class MonetizationDemoScreen extends ConsumerWidget {
@@ -59,7 +59,7 @@ class MonetizationDemoScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _buildLimitationsCard(ref, user.id),
                   const SizedBox(height: 16),
-                  _buildActionsCard(ref, user.id),
+                  _buildActionsCard(ref, user.id, context),
                   const SizedBox(height: 16),
 
                   // Upgrade prompt for free users
@@ -78,15 +78,13 @@ class MonetizationDemoScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: _buildFloatingActionButton(ref, user.id) != null
-          ? SafeFABWrapper(child: _buildFloatingActionButton(ref, user.id)!)
-          : null,
+      floatingActionButton: _buildFloatingActionButton(ref, user.id, context),
     );
   }
 
   Widget _buildUserStatusCard(WidgetRef ref, String userId) {
     final subscriptionAsync = ref.watch(userSubscriptionProvider(userId));
-    final isPremium = ref.watch(isPremiumProvider(userId));
+    final isPremiumAsync = ref.watch(isPremiumProvider(userId));
 
     return Card(
       child: Padding(
@@ -94,21 +92,49 @@ class MonetizationDemoScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  isPremium ? Icons.star : Icons.person,
-                  color: isPremium ? Colors.amber : Colors.grey,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isPremium ? 'Premium User' : 'Free User',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+            isPremiumAsync.when(
+              data: (isPremium) => Row(
+                children: [
+                  Icon(
+                    isPremium ? Icons.star : Icons.person,
+                    color: isPremium ? Colors.amber : Colors.grey,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    isPremium ? 'Premium User' : 'Free User',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              loading: () => const Row(
+                children: [
+                  Icon(Icons.person, color: Colors.grey),
+                  SizedBox(width: 8),
+                  Text(
+                    'Loading...',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              error: (_, __) => const Row(
+                children: [
+                  Icon(Icons.person, color: Colors.grey),
+                  SizedBox(width: 8),
+                  Text(
+                    'Free User',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 8),
             subscriptionAsync.when(
@@ -137,8 +163,8 @@ class MonetizationDemoScreen extends ConsumerWidget {
 
   Widget _buildLimitationsCard(WidgetRef ref, String userId) {
     final limitationsAsync = ref.watch(userLimitationsProvider(userId));
-    final remainingTasks = ref.watch(remainingTaskSlotsProvider(userId));
-    final remainingBoards = ref.watch(remainingBoardSlotsProvider(userId));
+    final remainingTasksAsync = ref.watch(remainingTaskSlotsProvider(userId));
+    final remainingBoardsAsync = ref.watch(remainingBoardSlotsProvider(userId));
 
     return Card(
       child: Padding(
@@ -157,17 +183,35 @@ class MonetizationDemoScreen extends ConsumerWidget {
             limitationsAsync.when(
               data: (limitations) => Column(
                 children: [
-                  _buildLimitRow(
-                    'Active Tasks',
-                    limitations.currentActiveTasks,
-                    limitations.maxActiveTasks,
-                    remainingTasks,
+                  remainingTasksAsync.when(
+                    data: (remainingTasks) => _buildLimitRow(
+                      'Active Tasks',
+                      limitations.currentActiveTasks,
+                      limitations.maxActiveTasks,
+                      remainingTasks,
+                    ),
+                    loading: () => const CircularProgressIndicator(),
+                    error: (_, __) => _buildLimitRow(
+                      'Active Tasks',
+                      limitations.currentActiveTasks,
+                      limitations.maxActiveTasks,
+                      0,
+                    ),
                   ),
-                  _buildLimitRow(
-                    'Boards',
-                    limitations.currentBoards,
-                    limitations.maxBoards,
-                    remainingBoards,
+                  remainingBoardsAsync.when(
+                    data: (remainingBoards) => _buildLimitRow(
+                      'Boards',
+                      limitations.currentBoards,
+                      limitations.maxBoards,
+                      remainingBoards,
+                    ),
+                    loading: () => const CircularProgressIndicator(),
+                    error: (_, __) => _buildLimitRow(
+                      'Boards',
+                      limitations.currentBoards,
+                      limitations.maxBoards,
+                      0,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -235,7 +279,7 @@ class MonetizationDemoScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildActionsCard(WidgetRef ref, String userId) {
+  Widget _buildActionsCard(WidgetRef ref, String userId, BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -251,17 +295,17 @@ class MonetizationDemoScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: () => _testTaskCreation(ref, userId),
+              onPressed: () => _testTaskCreation(ref, userId, context),
               child: const Text('Test Create Task'),
             ),
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: () => _testBoardCreation(ref, userId),
+              onPressed: () => _testBoardCreation(ref, userId, context),
               child: const Text('Test Create Board'),
             ),
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: () => _showInterstitialAd(ref),
+              onPressed: () => _showInterstitialAd(ref, context),
               child: const Text('Show Interstitial Ad'),
             ),
           ],
@@ -270,23 +314,23 @@ class MonetizationDemoScreen extends ConsumerWidget {
     );
   }
 
-  Widget? _buildFloatingActionButton(WidgetRef ref, String userId) {
-    final canCreateTasksAsync = ref.watch(canPerformActionProvider(
-      ActionCheck(userId: userId, type: LimitationType.activeTasks),
-    ));
+  Widget? _buildFloatingActionButton(WidgetRef ref, String userId, BuildContext context) {
+    final canCreateTasksAsync = ref.watch(canPerformActionProvider(LimitationType.activeTasks));
 
     return canCreateTasksAsync.when(
       data: (canCreate) {
         if (!canCreate) {
           return FloatingActionButton(
             onPressed: () {
-              ScaffoldMessenger.of(ref.context).showSnackBar(
-                const SnackBar(
-                  content: Text(
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
                       'Task limit reached. Upgrade to Premium for unlimited tasks.'),
                   action: SnackBarAction(
                     label: 'Upgrade',
-                    onPressed: null, // Navigate to subscription screen
+                    onPressed: () {
+                      Navigator.of(context).pushNamed('/subscription');
+                    },
                   ),
                 ),
               );
@@ -297,7 +341,7 @@ class MonetizationDemoScreen extends ConsumerWidget {
         }
 
         return FloatingActionButton(
-          onPressed: () => _testTaskCreation(ref, userId),
+          onPressed: () => _testTaskCreation(ref, userId, context),
           child: const Icon(Icons.add),
         );
       },
@@ -306,7 +350,7 @@ class MonetizationDemoScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _testTaskCreation(WidgetRef ref, String userId) async {
+  Future<void> _testTaskCreation(WidgetRef ref, String userId, BuildContext context) async {
     try {
       final subscriptionService = ref.read(subscriptionServiceProvider);
 
@@ -317,7 +361,7 @@ class MonetizationDemoScreen extends ConsumerWidget {
       );
 
       if (!canCreate) {
-        _showLimitDialog(ref.context, 'Task limit reached',
+        _showLimitDialog(context, 'Task limit reached',
             'You have reached your task limit. Upgrade to Premium for unlimited tasks.');
         return;
       }
@@ -326,21 +370,21 @@ class MonetizationDemoScreen extends ConsumerWidget {
       await subscriptionService.incrementUsage(
           userId, LimitationType.activeTasks);
 
-      if (ref.context.mounted) {
-        ScaffoldMessenger.of(ref.context).showSnackBar(
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Task created successfully!')),
         );
       }
     } catch (e) {
-      if (ref.context.mounted) {
-        ScaffoldMessenger.of(ref.context).showSnackBar(
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
       }
     }
   }
 
-  Future<void> _testBoardCreation(WidgetRef ref, String userId) async {
+  Future<void> _testBoardCreation(WidgetRef ref, String userId, BuildContext context) async {
     try {
       final subscriptionService = ref.read(subscriptionServiceProvider);
 
@@ -351,7 +395,7 @@ class MonetizationDemoScreen extends ConsumerWidget {
       );
 
       if (!canCreate) {
-        _showLimitDialog(ref.context, 'Board limit reached',
+        _showLimitDialog(context, 'Board limit reached',
             'You have reached your board limit. Upgrade to Premium for unlimited boards.');
         return;
       }
@@ -359,36 +403,36 @@ class MonetizationDemoScreen extends ConsumerWidget {
       // Simulate board creation
       await subscriptionService.incrementUsage(userId, LimitationType.boards);
 
-      if (ref.context.mounted) {
-        ScaffoldMessenger.of(ref.context).showSnackBar(
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Board created successfully!')),
         );
       }
     } catch (e) {
-      if (ref.context.mounted) {
-        ScaffoldMessenger.of(ref.context).showSnackBar(
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
       }
     }
   }
 
-  Future<void> _showInterstitialAd(WidgetRef ref) async {
+  Future<void> _showInterstitialAd(WidgetRef ref, BuildContext context) async {
     try {
       final adsService = ref.read(adsServiceProvider);
       final shown = await adsService
           .showInterstitialAd(AdPlacements.taskCompleteInterstitial);
 
-      if (ref.context.mounted) {
-        ScaffoldMessenger.of(ref.context).showSnackBar(
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content:
                   Text(shown ? 'Ad shown successfully!' : 'No ad available')),
         );
       }
     } catch (e) {
-      if (ref.context.mounted) {
-        ScaffoldMessenger.of(ref.context).showSnackBar(
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error showing ad: $e')),
         );
       }

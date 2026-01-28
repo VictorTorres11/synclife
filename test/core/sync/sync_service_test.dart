@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:synclife_app/src/core/sync/models/sync_conflict.dart';
@@ -57,8 +58,9 @@ void main() {
       // Arrange
       await syncService.initialize();
 
-      when(mockCompressionService.shouldCompress(any)).thenReturn(true);
-      when(mockCompressionService.compress(any))
+      final testData = {'test': 'large_data' * 100};
+      when(mockCompressionService.shouldCompress(testData)).thenReturn(true);
+      when(mockCompressionService.compress(testData))
           .thenAnswer((_) async => CompressedData(
                 data: Uint8List.fromList([1, 2, 3]),
                 checksum: 'test_checksum',
@@ -70,7 +72,7 @@ void main() {
       final operation = SyncOperation(
         id: 'test-op',
         type: SyncOperationType.createTask,
-        data: {'test': 'large_data' * 100},
+        data: testData,
         timestamp: DateTime.now(),
         priority: SyncPriority.high,
       );
@@ -79,19 +81,22 @@ void main() {
       await syncService.queueOperation(operation);
 
       // Assert
-      verify(mockCompressionService.shouldCompress(any)).called(1);
-      verify(mockCompressionService.compress(any)).called(1);
-      verify(mockLocalDatabase.insertSyncOperation(any)).called(1);
+      verify(mockCompressionService.shouldCompress(testData)).called(1);
+      verify(mockCompressionService.compress(testData)).called(1);
+      verify(mockLocalDatabase.insertSyncOperation(operation)).called(1);
     });
 
     test('should perform incremental sync', () async {
       // Arrange
       await syncService.initialize();
-      when(mockLocalDatabase.getDeltasSince(any)).thenAnswer((_) async => []);
-      when(mockIncrementalSyncService.createDeltaBatch(any))
+      final testTime = DateTime.now();
+      final testDeltas = <SyncDelta>[];
+      
+      when(mockLocalDatabase.getDeltasSince(testTime)).thenAnswer((_) async => testDeltas);
+      when(mockIncrementalSyncService.createDeltaBatch(testDeltas))
           .thenAnswer((_) async => SyncDeltaBatch(
                 id: 'batch_1',
-                deltas: [],
+                deltas: testDeltas,
                 timestamp: DateTime.now(),
               ));
 
@@ -105,9 +110,11 @@ void main() {
     test('should get optimization statistics', () async {
       // Arrange
       await syncService.initialize();
+      final testOperations = <SyncOperation>[];
+      
       when(mockLocalDatabase.getPendingSyncOperations())
-          .thenAnswer((_) async => []);
-      when(mockIncrementalSyncService.calculateOptimization(any))
+          .thenAnswer((_) async => testOperations);
+      when(mockIncrementalSyncService.calculateOptimization(testOperations))
           .thenAnswer((_) async => const SyncOptimizationStats(
                 originalOperations: 10,
                 optimizedDeltas: 6,
@@ -161,6 +168,9 @@ class MockLocalDatabaseService extends Mock implements LocalDatabaseService {
 
   @override
   Future<List<SyncOperation>> getPendingSyncOperations() async => [];
+
+  @override
+  Future<List<SyncDelta>> getDeltasSince(DateTime timestamp) async => [];
 }
 
 class MockTaskService extends Mock implements TaskService {
@@ -256,7 +266,7 @@ class MockCompressionService extends Mock implements CompressionService {
       );
 
   @override
-  String calculateChecksum(data) => super.noSuchMethod(
+  String calculateChecksum(dynamic data) => super.noSuchMethod(
         Invocation.method(#calculateChecksum, [data]),
         returnValue: 'test_checksum',
       );

@@ -60,7 +60,7 @@ final subscriptionInitializationProvider = FutureProvider<void>((ref) async {
 });
 
 /// Provider for the ads service
-// final adsServiceProvider = Provider<AdsService>((ref) => GoogleAdsService());
+final adsServiceProvider = Provider<AdsService>((ref) => MockAdsService());
 
 /// Provider for discrete ad service
 final discreteAdServiceProvider = Provider<DiscreteAdService>((ref) {
@@ -86,27 +86,31 @@ final discreteAdServiceProvider = Provider<DiscreteAdService>((ref) {
 // });
 
 /// Provider for user subscription (using current user)
-final userSubscriptionProvider = StreamProvider<Subscription?>((ref) {
+final userSubscriptionProvider = StreamProvider.family<Subscription?, String>((ref, userId) {
   final subscriptionService = ref.watch(subscriptionServiceProvider);
-  final user = ref.watch(currentUserProvider);
-
-  if (user == null) {
-    return Stream.value(null);
-  }
-
-  return subscriptionService.watchUserSubscription(user.id);
+  return subscriptionService.watchUserSubscription(userId);
 });
 
 /// Provider for user limitations (using current user)
-final userLimitationsProvider = StreamProvider<UserLimitations>((ref) {
+final userLimitationsProvider = StreamProvider.family<UserLimitations, String>((ref, userId) {
   final subscriptionService = ref.watch(subscriptionServiceProvider);
-  final user = ref.watch(currentUserProvider);
+  return subscriptionService.watchUserLimitations(userId);
+});
 
+/// Provider for current user subscription
+final currentUserSubscriptionProvider = StreamProvider<Subscription?>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream.value(null);
+  return ref.watch(userSubscriptionProvider(user.id).stream);
+});
+
+/// Provider for current user limitations
+final currentUserLimitationsProvider = StreamProvider<UserLimitations>((ref) {
+  final user = ref.watch(currentUserProvider);
   if (user == null) {
     return Stream.value(UserLimitations.forPlan('', SubscriptionPlan.free));
   }
-
-  return subscriptionService.watchUserLimitations(user.id);
+  return ref.watch(userLimitationsProvider(user.id).stream);
 });
 
 /// Provider for available subscription products
@@ -141,9 +145,30 @@ final canPerformActionProvider =
   return subscriptionService.canPerformAction(user.id, type);
 });
 
+/// Provider for user subscription status by user ID
+final isPremiumProvider = FutureProvider.family<bool, String>((ref, userId) async {
+  final subscriptionService = ref.watch(subscriptionServiceProvider);
+  final subscription = await subscriptionService.getUserSubscription(userId);
+  return subscription?.effectivePlan == SubscriptionPlan.premium;
+});
+
+/// Provider for remaining task slots by user ID
+final remainingTaskSlotsProvider = FutureProvider.family<int, String>((ref, userId) async {
+  final subscriptionService = ref.watch(subscriptionServiceProvider);
+  final limitations = await subscriptionService.getUserLimitations(userId);
+  return limitations.remainingTaskSlots;
+});
+
+/// Provider for remaining board slots by user ID
+final remainingBoardSlotsProvider = FutureProvider.family<int, String>((ref, userId) async {
+  final subscriptionService = ref.watch(subscriptionServiceProvider);
+  final limitations = await subscriptionService.getUserLimitations(userId);
+  return limitations.remainingBoardSlots;
+});
+
 /// Provider for subscription status (derived from subscription)
 final subscriptionStatusProvider = Provider<SubscriptionStatus?>((ref) {
-  final subscriptionAsync = ref.watch(userSubscriptionProvider);
+  final subscriptionAsync = ref.watch(currentUserSubscriptionProvider);
   return subscriptionAsync.when(
     data: (subscription) => subscription?.status,
     loading: () => null,
@@ -153,7 +178,7 @@ final subscriptionStatusProvider = Provider<SubscriptionStatus?>((ref) {
 
 /// Provider for effective subscription plan (derived from subscription)
 final effectivePlanProvider = Provider<SubscriptionPlan>((ref) {
-  final subscriptionAsync = ref.watch(userSubscriptionProvider);
+  final subscriptionAsync = ref.watch(currentUserSubscriptionProvider);
   return subscriptionAsync.when(
     data: (subscription) =>
         subscription?.effectivePlan ?? SubscriptionPlan.free,
@@ -162,15 +187,15 @@ final effectivePlanProvider = Provider<SubscriptionPlan>((ref) {
   );
 });
 
-/// Provider to check if user is premium
-final isPremiumProvider = Provider<bool>((ref) {
+/// Provider to check if current user is premium
+final currentUserIsPremiumProvider = Provider<bool>((ref) {
   final plan = ref.watch(effectivePlanProvider);
   return plan == SubscriptionPlan.premium;
 });
 
-/// Provider for remaining task slots
-final remainingTaskSlotsProvider = Provider<int>((ref) {
-  final limitationsAsync = ref.watch(userLimitationsProvider);
+/// Provider for current user remaining task slots
+final currentUserRemainingTaskSlotsProvider = Provider<int>((ref) {
+  final limitationsAsync = ref.watch(currentUserLimitationsProvider);
   return limitationsAsync.when(
     data: (limitations) => limitations.remainingTaskSlots,
     loading: () => 0,
@@ -178,9 +203,9 @@ final remainingTaskSlotsProvider = Provider<int>((ref) {
   );
 });
 
-/// Provider for remaining board slots
-final remainingBoardSlotsProvider = Provider<int>((ref) {
-  final limitationsAsync = ref.watch(userLimitationsProvider);
+/// Provider for current user remaining board slots
+final currentUserRemainingBoardSlotsProvider = Provider<int>((ref) {
+  final limitationsAsync = ref.watch(currentUserLimitationsProvider);
   return limitationsAsync.when(
     data: (limitations) => limitations.remainingBoardSlots,
     loading: () => 0,
@@ -190,7 +215,7 @@ final remainingBoardSlotsProvider = Provider<int>((ref) {
 
 /// Provider to check if user can use calendar integration
 final canUseCalendarIntegrationProvider = Provider<bool>((ref) {
-  final limitationsAsync = ref.watch(userLimitationsProvider);
+  final limitationsAsync = ref.watch(currentUserLimitationsProvider);
   return limitationsAsync.when(
     data: (limitations) => limitations.canUseCalendarIntegration,
     loading: () => false,
@@ -200,7 +225,7 @@ final canUseCalendarIntegrationProvider = Provider<bool>((ref) {
 
 /// Provider to check if user can use advanced backup
 final canUseAdvancedBackupProvider = Provider<bool>((ref) {
-  final limitationsAsync = ref.watch(userLimitationsProvider);
+  final limitationsAsync = ref.watch(currentUserLimitationsProvider);
   return limitationsAsync.when(
     data: (limitations) => limitations.canUseAdvancedBackup,
     loading: () => false,
@@ -210,7 +235,7 @@ final canUseAdvancedBackupProvider = Provider<bool>((ref) {
 
 /// Provider to check if user can use premium themes
 final canUsePremiumThemesProvider = Provider<bool>((ref) {
-  final limitationsAsync = ref.watch(userLimitationsProvider);
+  final limitationsAsync = ref.watch(currentUserLimitationsProvider);
   return limitationsAsync.when(
     data: (limitations) => limitations.canUsePremiumThemes,
     loading: () => false,

@@ -4,6 +4,7 @@ import '../providers/monetization_providers.dart';
 import '../widgets/calendar_integration_widget.dart';
 import '../widgets/advanced_backup_widget.dart';
 import '../widgets/premium_themes_widget.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 
 /// Screen displaying premium features for subscribed users
 class PremiumFeaturesScreen extends ConsumerWidget {
@@ -11,8 +12,22 @@ class PremiumFeaturesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final subscriptionAsync = ref.watch(userSubscriptionProvider);
-    final limitationsAsync = ref.watch(userLimitationsProvider);
+    final user = ref.watch(currentUserProvider);
+    
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Premium Features'),
+          backgroundColor: Theme.of(context).colorScheme.surface,
+        ),
+        body: const Center(
+          child: Text('Please log in to access premium features'),
+        ),
+      );
+    }
+
+    final subscriptionAsync = ref.watch(userSubscriptionProvider(user.id));
+    final limitationsAsync = ref.watch(userLimitationsProvider(user.id));
 
     return Scaffold(
       appBar: AppBar(

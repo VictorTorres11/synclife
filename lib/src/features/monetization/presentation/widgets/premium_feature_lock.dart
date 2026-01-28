@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/monetization_providers.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import 'upgrade_prompt_dialog.dart';
 import 'premium_feature_indicator.dart';
 
@@ -25,14 +26,31 @@ class PremiumFeatureLock extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider);
-
-    // If user is Premium, show the child normally
-    if (isPremium) {
-      return child;
+    final user = ref.watch(currentUserProvider);
+    
+    if (user == null) {
+      // Show locked version for unauthenticated users
+      return _buildLockedVersion(context);
     }
 
-    // For free users, show locked version
+    final isPremiumAsync = ref.watch(isPremiumProvider(user.id));
+
+    return isPremiumAsync.when(
+      data: (isPremium) {
+        // If user is Premium, show the child normally
+        if (isPremium) {
+          return child;
+        }
+
+        // For free users, show locked version
+        return _buildLockedVersion(context);
+      },
+      loading: () => _buildLockedVersion(context),
+      error: (_, __) => _buildLockedVersion(context),
+    );
+  }
+
+  Widget _buildLockedVersion(BuildContext context) {
     return Stack(
       children: [
         // Disabled/grayed out child
@@ -51,7 +69,7 @@ class PremiumFeatureLock extends ConsumerWidget {
               onTap: onTap ?? () => _showUpgradePrompt(context),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: showIndicator
@@ -109,12 +127,27 @@ class PremiumGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider);
-
-    if (isPremium) {
-      return child;
+    final user = ref.watch(currentUserProvider);
+    
+    if (user == null) {
+      return _buildFallbackOrUpgrade(context);
     }
 
+    final isPremiumAsync = ref.watch(isPremiumProvider(user.id));
+
+    return isPremiumAsync.when(
+      data: (isPremium) {
+        if (isPremium) {
+          return child;
+        }
+        return _buildFallbackOrUpgrade(context);
+      },
+      loading: () => _buildFallbackOrUpgrade(context),
+      error: (_, __) => _buildFallbackOrUpgrade(context),
+    );
+  }
+
+  Widget _buildFallbackOrUpgrade(BuildContext context) {
     if (fallback != null) {
       return fallback!;
     }

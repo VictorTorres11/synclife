@@ -26,8 +26,8 @@ class SubscriptionManagementScreen extends ConsumerWidget {
       );
     }
 
-    final subscriptionAsync = ref.watch(userSubscriptionProvider);
-    final limitationsAsync = ref.watch(userLimitationsProvider);
+    final subscriptionAsync = ref.watch(userSubscriptionProvider(user.id));
+    final limitationsAsync = ref.watch(userLimitationsProvider(user.id));
     final productsAsync = ref.watch(availableProductsProvider);
 
     return MainLayout(

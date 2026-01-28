@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/user_limitations.dart';
 import '../providers/monetization_providers.dart';
 import '../widgets/upgrade_prompt_dialog.dart';
-import '../../domain/services/subscription_service.dart';
 
 /// Utility class for Premium feature management
 class PremiumUtils {
@@ -11,13 +10,14 @@ class PremiumUtils {
   static Future<bool> checkAndPromptForAction(
     BuildContext context,
     WidgetRef ref,
+    String userId,
     LimitationType limitationType, {
     String? customMessage,
     List<String>? customBenefits,
   }) async {
-    final isPremium = ref.read(isPremiumProvider);
+    final isPremiumAsync = await ref.read(isPremiumProvider(userId).future);
 
-    if (isPremium) return true;
+    if (isPremiumAsync) return true;
 
     final canPerform =
         await ref.read(canPerformActionProvider(limitationType).future);
@@ -44,29 +44,23 @@ class PremiumUtils {
   }
 
   /// Check if a specific Premium feature is available
-  static bool isFeatureAvailable(WidgetRef ref, String featureKey) {
-    final isPremium = ref.read(isPremiumProvider);
-    if (isPremium) return true;
+  static Future<bool> isFeatureAvailable(WidgetRef ref, String userId, String featureKey) async {
+    final isPremiumAsync = await ref.read(isPremiumProvider(userId).future);
+    if (isPremiumAsync) return true;
 
-    final limitationsAsync = ref.read(userLimitationsProvider);
-    return limitationsAsync.when(
-      data: (limitations) {
-        switch (featureKey) {
-          case 'calendar_integration':
-            return limitations.canUseCalendarIntegration;
-          case 'advanced_backup':
-            return limitations.canUseAdvancedBackup;
-          case 'premium_themes':
-            return limitations.canUsePremiumThemes;
-          case 'ad_free':
-            return !limitations.adsEnabled;
-          default:
-            return false;
-        }
-      },
-      loading: () => false,
-      error: (_, __) => false,
-    );
+    final limitationsAsync = await ref.read(userLimitationsProvider(userId).future);
+    switch (featureKey) {
+      case 'calendar_integration':
+        return limitationsAsync.canUseCalendarIntegration;
+      case 'advanced_backup':
+        return limitationsAsync.canUseAdvancedBackup;
+      case 'premium_themes':
+        return limitationsAsync.canUsePremiumThemes;
+      case 'ad_free':
+        return !limitationsAsync.adsEnabled;
+      default:
+        return false;
+    }
   }
 
   /// Show upgrade prompt for a specific feature
@@ -90,46 +84,34 @@ class PremiumUtils {
   }
 
   /// Get remaining usage for a limitation type
-  static int getRemainingUsage(WidgetRef ref, LimitationType limitationType) {
-    final limitationsAsync = ref.read(userLimitationsProvider);
-    return limitationsAsync.when(
-      data: (limitations) {
-        switch (limitationType) {
-          case LimitationType.activeTasks:
-            return limitations.remainingTaskSlots;
-          case LimitationType.boards:
-            return limitations.remainingBoardSlots;
-          case LimitationType.boardMembers:
-            return limitations.maxBoardMembers == -1
-                ? -1
-                : limitations.maxBoardMembers;
-        }
-      },
-      loading: () => 0,
-      error: (_, __) => 0,
-    );
+  static Future<int> getRemainingUsage(WidgetRef ref, String userId, LimitationType limitationType) async {
+    final limitationsAsync = await ref.read(userLimitationsProvider(userId).future);
+    switch (limitationType) {
+      case LimitationType.activeTasks:
+        return limitationsAsync.remainingTaskSlots;
+      case LimitationType.boards:
+        return limitationsAsync.remainingBoardSlots;
+      case LimitationType.boardMembers:
+        return limitationsAsync.maxBoardMembers == -1
+            ? -1
+            : limitationsAsync.maxBoardMembers;
+    }
   }
 
   /// Get usage percentage for progress indicators
-  static double getUsagePercentage(
-      WidgetRef ref, LimitationType limitationType) {
-    final limitationsAsync = ref.read(userLimitationsProvider);
-    return limitationsAsync.when(
-      data: (limitations) {
-        switch (limitationType) {
-          case LimitationType.activeTasks:
-            if (limitations.maxActiveTasks == -1) return 0.0;
-            return limitations.currentActiveTasks / limitations.maxActiveTasks;
-          case LimitationType.boards:
-            if (limitations.maxBoards == -1) return 0.0;
-            return limitations.currentBoards / limitations.maxBoards;
-          case LimitationType.boardMembers:
-            return 0.0; // Not tracked globally
-        }
-      },
-      loading: () => 0.0,
-      error: (_, __) => 0.0,
-    );
+  static Future<double> getUsagePercentage(
+      WidgetRef ref, String userId, LimitationType limitationType) async {
+    final limitationsAsync = await ref.read(userLimitationsProvider(userId).future);
+    switch (limitationType) {
+      case LimitationType.activeTasks:
+        if (limitationsAsync.maxActiveTasks == -1) return 0.0;
+        return limitationsAsync.currentActiveTasks / limitationsAsync.maxActiveTasks;
+      case LimitationType.boards:
+        if (limitationsAsync.maxBoards == -1) return 0.0;
+        return limitationsAsync.currentBoards / limitationsAsync.maxBoards;
+      case LimitationType.boardMembers:
+        return 0.0; // Not tracked globally
+    }
   }
 
   static String _getFeatureName(LimitationType limitationType) {

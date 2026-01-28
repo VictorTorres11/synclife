@@ -5,6 +5,7 @@ import '../../../../core/layout/main_layout.dart';
 import '../../../monetization/presentation/providers/monetization_providers.dart';
 import '../../../monetization/presentation/widgets/premium_feature_indicator.dart';
 import '../../../monetization/presentation/widgets/upgrade_prompt_dialog.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/models/models.dart';
 import '../widgets/fluxo_coins_header.dart';
 import '../widgets/store_category_tabs.dart';
@@ -37,56 +38,79 @@ class _RewardsStoreScreenState extends ConsumerState<RewardsStoreScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isPremium = ref.watch(isPremiumProvider);
-
-    return MainLayout(
-      title: 'FluxoCoins Store',
-      actions: [
-        if (!isPremium) ...[
-          GestureDetector(
-            onTap: () => _showPremiumStoreInfo(context),
-            child: const PremiumFeatureIndicator(
-              size: 20,
-              showText: true,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-        IconButton(
-          onPressed: () => _showInventory(context),
-          icon: const Icon(Icons.inventory),
-          tooltip: 'My Inventory',
+    final user = ref.watch(currentUserProvider);
+    
+    if (user == null) {
+      return MainLayout(
+        title: 'FluxoCoins Store',
+        child: const Center(
+          child: Text('Please log in to access the store'),
         ),
-        if (!isPremium)
-          IconButton(
-            onPressed: () => _showPremiumStoreInfo(context),
-            icon: const Icon(Icons.star_border),
-            tooltip: 'Premium Store Features',
-          ),
-      ],
-      child: Column(
-        children: [
-          // FluxoCoins Balance Header
-          const FluxoCoinsHeader(),
+      );
+    }
 
-          // Premium Store Banner for free users
-          if (!isPremium) _buildPremiumStoreBanner(context),
+    final isPremiumAsync = ref.watch(isPremiumProvider(user.id));
 
-          // Category Tabs
-          StoreCategoryTabs(controller: _tabController),
-
-          // Store Items Grid
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: const [
-                StoreItemGrid(category: StoreItemCategory.functional),
-                StoreItemGrid(category: StoreItemCategory.visual),
-                StoreItemGrid(category: StoreItemCategory.utility),
-              ],
+    return isPremiumAsync.when(
+      data: (isPremium) => MainLayout(
+        title: 'FluxoCoins Store',
+        actions: [
+          if (!isPremium) ...[
+            GestureDetector(
+              onTap: () => _showPremiumStoreInfo(context),
+              child: const PremiumFeatureIndicator(
+                size: 20,
+                showText: true,
+              ),
             ),
+            const SizedBox(width: 8),
+          ],
+          IconButton(
+            onPressed: () => _showInventory(context),
+            icon: const Icon(Icons.inventory),
+            tooltip: 'My Inventory',
           ),
+          if (!isPremium)
+            IconButton(
+              onPressed: () => _showPremiumStoreInfo(context),
+              icon: const Icon(Icons.star_border),
+              tooltip: 'Premium Store Features',
+            ),
         ],
+        child: Column(
+          children: [
+            // FluxoCoins Balance Header
+            const FluxoCoinsHeader(),
+
+            // Premium Store Banner for free users
+            if (!isPremium) _buildPremiumStoreBanner(context),
+
+            // Category Tabs
+            StoreCategoryTabs(controller: _tabController),
+
+            // Store Items Grid
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: const [
+                  StoreItemGrid(category: StoreItemCategory.functional),
+                  StoreItemGrid(category: StoreItemCategory.visual),
+                  StoreItemGrid(category: StoreItemCategory.utility),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      loading: () => MainLayout(
+        title: 'FluxoCoins Store',
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => MainLayout(
+        title: 'FluxoCoins Store',
+        child: Center(
+          child: Text('Error loading store: $error'),
+        ),
       ),
     );
   }

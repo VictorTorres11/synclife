@@ -463,6 +463,7 @@ class _TasksPageState extends ConsumerState<TasksPage>
       final canCreate = await PremiumUtils.checkAndPromptForAction(
         context,
         ref,
+        userId,
         LimitationType.activeTasks,
         customMessage:
             'You\'ve reached your task limit. Upgrade to Premium for unlimited tasks.',

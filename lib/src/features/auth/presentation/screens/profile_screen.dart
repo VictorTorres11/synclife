@@ -104,7 +104,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildProfileContent(BuildContext context, User user, WidgetRef ref) {
-    final subscriptionAsync = ref.watch(userSubscriptionProvider);
+    final subscriptionAsync = ref.watch(userSubscriptionProvider(user.id));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),

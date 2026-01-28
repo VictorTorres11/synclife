@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/user_limitations.dart';
 import '../providers/monetization_providers.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../utils/premium_utils.dart';
-import '../../domain/services/subscription_service.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 
 /// Widget showing current usage vs limits with upgrade prompt
 class UsageIndicator extends ConsumerWidget {
@@ -24,21 +25,33 @@ class UsageIndicator extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isPremium = ref.watch(isPremiumProvider);
-    final limitationsAsync = ref.watch(userLimitationsProvider);
-
-    if (isPremium) {
-      return _buildPremiumIndicator(context, theme);
+    final user = ref.watch(currentUserProvider);
+    
+    if (user == null) {
+      return const SizedBox.shrink();
     }
 
-    return limitationsAsync.when(
-      data: (limitations) => _buildUsageWidget(
-        context,
-        ref,
-        theme,
-        colorScheme,
-        limitations,
-      ),
+    final isPremiumAsync = ref.watch(isPremiumProvider(user.id));
+    final limitationsAsync = ref.watch(userLimitationsProvider(user.id));
+
+    return isPremiumAsync.when(
+      data: (isPremium) {
+        if (isPremium) {
+          return _buildPremiumIndicator(context, theme);
+        }
+
+        return limitationsAsync.when(
+          data: (limitations) => _buildUsageWidget(
+            context,
+            ref,
+            theme,
+            colorScheme,
+            limitations,
+          ),
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        );
+      },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
     );
@@ -192,11 +205,17 @@ class UsageIndicator extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () => PremiumUtils.checkAndPromptForAction(
-                  context,
-                  ref,
-                  limitationType,
-                ),
+                onPressed: () async {
+                  final user = ref.read(currentUserProvider);
+                  if (user != null) {
+                    await PremiumUtils.checkAndPromptForAction(
+                      context,
+                      ref,
+                      user.id,
+                      limitationType,
+                    );
+                  }
+                },
                 icon: const Icon(Icons.upgrade, size: 16),
                 label: const Text('Upgrade to Premium'),
                 style: OutlinedButton.styleFrom(

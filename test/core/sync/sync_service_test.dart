@@ -104,7 +104,7 @@ void main() {
       await syncService.incrementalSync();
 
       // Assert
-      verify(mockLocalDatabase.getDeltasSince(any)).called(1);
+      verify(mockLocalDatabase.getDeltasSince(argThat(isA<DateTime>()))).called(1);
     });
 
     test('should get optimization statistics', () async {

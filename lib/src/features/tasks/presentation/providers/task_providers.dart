@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/sync/providers/sync_providers.dart';
 import '../../domain/models/task.dart';
+import '../../domain/models/inbox_item.dart';
 import '../../domain/services/task_service.dart';
 
 /// Main task service provider - uses offline-first service
@@ -62,3 +63,37 @@ class DateRange {
   @override
   int get hashCode => start.hashCode ^ end.hashCode;
 }
+
+/// State notifier for managing inbox items
+class InboxItemsNotifier extends StateNotifier<List<InboxItem>> {
+  InboxItemsNotifier() : super([]);
+
+  void addItem(InboxItem item) {
+    state = [...state, item];
+  }
+
+  void updateItem(String itemId, String newContent) {
+    state = state.map((item) {
+      if (item.id == itemId) {
+        return item.copyWith(
+          content: newContent,
+          updatedAt: DateTime.now(),
+        );
+      }
+      return item;
+    }).toList();
+  }
+
+  void removeItem(String itemId) {
+    state = state.where((item) => item.id != itemId).toList();
+  }
+
+  void setItems(List<InboxItem> items) {
+    state = items;
+  }
+}
+
+/// Provider for managing inbox items
+final inboxItemsProvider = StateNotifierProvider<InboxItemsNotifier, List<InboxItem>>((ref) {
+  return InboxItemsNotifier();
+});

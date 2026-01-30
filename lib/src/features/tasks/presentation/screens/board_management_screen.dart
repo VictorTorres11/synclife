@@ -49,11 +49,6 @@ class _BoardManagementScreenState extends ConsumerState<BoardManagementScreen>
           onPressed: _showCreateBoardDialog,
           tooltip: 'Criar Quadro',
         ),
-        IconButton(
-          icon: const Icon(Icons.search),
-          onPressed: _showSearchDialog,
-          tooltip: 'Buscar Quadros',
-        ),
       ],
       child: Column(
         children: [

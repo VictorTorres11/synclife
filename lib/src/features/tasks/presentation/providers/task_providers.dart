@@ -18,6 +18,13 @@ final tasksProvider =
   return await taskService.getTasks(boardId);
 });
 
+/// Provider for a single task by ID
+final taskProvider =
+    FutureProvider.family<Task?, String>((ref, taskId) async {
+  final taskService = ref.read(taskServiceProvider);
+  return await taskService.getTask(taskId);
+});
+
 /// Provider for watching tasks by board ID (real-time updates)
 final watchTasksProvider =
     StreamProvider.family<List<Task>, String>((ref, boardId) {

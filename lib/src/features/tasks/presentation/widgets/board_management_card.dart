@@ -3,11 +3,30 @@ import 'package:flutter/material.dart';
 import '../../domain/models/board.dart';
 import '../../domain/models/board_type.dart';
 
-/// Enhanced card widget for board management with actions
+/// Statistics for a board
+class BoardStats {
+  const BoardStats({
+    required this.totalTasks,
+    required this.completedTasks,
+    required this.pendingTasks,
+    required this.overdueTasks,
+  });
+
+  final int totalTasks;
+  final int completedTasks;
+  final int pendingTasks;
+  final int overdueTasks;
+
+  int get completionPercentage => 
+      totalTasks > 0 ? ((completedTasks / totalTasks) * 100).round() : 0;
+}
+
+/// Enhanced card widget for board management with actions and statistics
 class BoardManagementCard extends StatelessWidget {
   const BoardManagementCard({
     super.key,
     required this.board,
+    this.stats,
     this.onTap,
     this.onEdit,
     this.onMembers,
@@ -16,6 +35,7 @@ class BoardManagementCard extends StatelessWidget {
   });
 
   final Board board;
+  final BoardStats? stats;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onMembers;
@@ -66,11 +86,17 @@ class BoardManagementCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  _buildTypeChip(),
+                  _buildTypeChip(context),
                 ],
               ),
 
               const SizedBox(height: 12),
+
+              // Task statistics (if available)
+              if (stats != null) ...[
+                _buildTaskStats(context),
+                const SizedBox(height: 12),
+              ],
 
               // Board info
               Row(
@@ -171,7 +197,7 @@ class BoardManagementCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTypeChip() {
+  Widget _buildTypeChip(BuildContext context) {
     final isShared = board.type == BoardType.shared;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -201,6 +227,140 @@ class BoardManagementCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTaskStats(BuildContext context) {
+    if (stats == null) return const SizedBox.shrink();
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Progress bar
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Progresso das Tarefas',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          '${stats!.completionPercentage}%',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    LinearProgressIndicator(
+                      value: stats!.totalTasks > 0 
+                          ? stats!.completedTasks / stats!.totalTasks 
+                          : 0,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Task statistics
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatItem(
+                  icon: Icons.task_alt,
+                  label: 'Total',
+                  value: stats!.totalTasks.toString(),
+                  color: Colors.blue,
+                ),
+              ),
+              Expanded(
+                child: _buildStatItem(
+                  icon: Icons.check_circle,
+                  label: 'Concluídas',
+                  value: stats!.completedTasks.toString(),
+                  color: Colors.green,
+                ),
+              ),
+              Expanded(
+                child: _buildStatItem(
+                  icon: Icons.pending,
+                  label: 'Pendentes',
+                  value: stats!.pendingTasks.toString(),
+                  color: Colors.orange,
+                ),
+              ),
+              if (stats!.overdueTasks > 0)
+                Expanded(
+                  child: _buildStatItem(
+                    icon: Icons.warning,
+                    label: 'Atrasadas',
+                    value: stats!.overdueTasks.toString(),
+                    color: Colors.red,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: color,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.grey[600],
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 

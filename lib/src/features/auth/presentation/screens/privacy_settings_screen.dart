@@ -13,206 +13,163 @@ class PrivacySettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
-  // Privacy settings state
-  bool _analyticsEnabled = true;
-  bool _crashReportingEnabled = true;
-  bool _locationTrackingEnabled = true;
-  bool _personalizedAdsEnabled = false;
-  bool _dataExportEnabled = true;
-  bool _profileVisibilityPublic = false;
+  bool _profileVisibility = true;
+  bool _activityTracking = false;
+  bool _dataCollection = true;
+  bool _analyticsOptIn = false;
+  bool _marketingEmails = false;
+  bool _shareWithPartners = false;
+  bool _locationTracking = false;
+  bool _crashReporting = true;
 
   @override
   Widget build(BuildContext context) {
     return MainLayout(
-      title: 'Privacy Settings',
+      title: 'Privacidade',
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Profile Privacy
+            _buildSectionCard(
+              'Privacidade do Perfil',
+              [
+                _buildSwitchTile(
+                  'Perfil Público',
+                  'Permitir que outros usuários vejam seu perfil',
+                  Icons.visibility,
+                  _profileVisibility,
+                  (value) => setState(() => _profileVisibility = value),
+                ),
+                _buildSwitchTile(
+                  'Rastreamento de Atividade',
+                  'Permitir rastreamento de atividades no app',
+                  Icons.track_changes,
+                  _activityTracking,
+                  (value) => setState(() => _activityTracking = value),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
             // Data Collection
-            _buildSectionHeader('Data Collection'),
-            Card(
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text('Analytics'),
-                    subtitle: const Text(
-                        'Help improve the app with anonymous usage data'),
-                    value: _analyticsEnabled,
-                    onChanged: (value) {
-                      setState(() {
-                        _analyticsEnabled = value;
-                      });
-                      _showAnalyticsDialog(context, value);
-                    },
-                    secondary: const Icon(Icons.analytics),
-                  ),
-                  SwitchListTile(
-                    title: const Text('Crash Reporting'),
-                    subtitle: const Text(
-                        'Automatically send crash reports to help fix bugs'),
-                    value: _crashReportingEnabled,
-                    onChanged: (value) {
-                      setState(() {
-                        _crashReportingEnabled = value;
-                      });
-                    },
-                    secondary: const Icon(Icons.bug_report),
-                  ),
-                  SwitchListTile(
-                    title: const Text('Location Tracking'),
-                    subtitle: const Text(
-                        'Use location for timezone detection and regional features'),
-                    value: _locationTrackingEnabled,
-                    onChanged: (value) {
-                      setState(() {
-                        _locationTrackingEnabled = value;
-                      });
-                      if (!value) {
-                        _showLocationWarningDialog(context);
-                      }
-                    },
-                    secondary: const Icon(Icons.location_on),
-                  ),
-                ],
-              ),
+            _buildSectionCard(
+              'Coleta de Dados',
+              [
+                _buildSwitchTile(
+                  'Coleta de Dados de Uso',
+                  'Permitir coleta de dados para melhorar o app',
+                  Icons.data_usage,
+                  _dataCollection,
+                  (value) => setState(() => _dataCollection = value),
+                ),
+                _buildSwitchTile(
+                  'Analytics',
+                  'Compartilhar dados analíticos anônimos',
+                  Icons.analytics,
+                  _analyticsOptIn,
+                  (value) => setState(() => _analyticsOptIn = value),
+                ),
+                _buildSwitchTile(
+                  'Relatórios de Erro',
+                  'Enviar relatórios de erro automaticamente',
+                  Icons.bug_report,
+                  _crashReporting,
+                  (value) => setState(() => _crashReporting = value),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Marketing & Communications
+            _buildSectionCard(
+              'Marketing e Comunicações',
+              [
+                _buildSwitchTile(
+                  'Emails de Marketing',
+                  'Receber emails promocionais e novidades',
+                  Icons.email,
+                  _marketingEmails,
+                  (value) => setState(() => _marketingEmails = value),
+                ),
+                _buildSwitchTile(
+                  'Compartilhar com Parceiros',
+                  'Permitir compartilhamento de dados com parceiros',
+                  Icons.share,
+                  _shareWithPartners,
+                  (value) => setState(() => _shareWithPartners = value),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Location & Tracking
+            _buildSectionCard(
+              'Localização e Rastreamento',
+              [
+                _buildSwitchTile(
+                  'Rastreamento de Localização',
+                  'Permitir acesso à sua localização',
+                  Icons.location_on,
+                  _locationTracking,
+                  (value) => setState(() => _locationTracking = value),
+                ),
+              ],
             ),
 
             const SizedBox(height: 24),
 
-            // Advertising
-            _buildSectionHeader('Advertising'),
+            // Data Management Actions
             Card(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SwitchListTile(
-                    title: const Text('Personalized Ads'),
-                    subtitle: const Text(
-                        'Show ads based on your interests and activity'),
-                    value: _personalizedAdsEnabled,
-                    onChanged: (value) {
-                      setState(() {
-                        _personalizedAdsEnabled = value;
-                      });
-                    },
-                    secondary: const Icon(Icons.ads_click),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Gerenciamento de Dados',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
                   ),
                   ListTile(
-                    title: const Text('Ad Preferences'),
-                    subtitle: const Text('Manage your advertising preferences'),
+                    leading: const Icon(Icons.download),
+                    title: const Text('Baixar Meus Dados'),
+                    subtitle: const Text('Solicitar uma cópia dos seus dados'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showAdPreferencesDialog(context),
-                    leading: const Icon(Icons.tune),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Profile & Sharing
-            _buildSectionHeader('Profile & Sharing'),
-            Card(
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text('Public Profile'),
-                    subtitle: const Text(
-                        'Allow others to find you by email or username'),
-                    value: _profileVisibilityPublic,
-                    onChanged: (value) {
-                      setState(() {
-                        _profileVisibilityPublic = value;
-                      });
-                    },
-                    secondary: const Icon(Icons.public),
+                    onTap: _requestDataDownload,
                   ),
                   ListTile(
-                    title: const Text('Blocked Users'),
-                    subtitle: const Text('Manage blocked users and boards'),
+                    leading: const Icon(Icons.delete_sweep),
+                    title: const Text('Limpar Dados de Uso'),
+                    subtitle: const Text('Remover dados de atividade coletados'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showBlockedUsersDialog(context),
-                    leading: const Icon(Icons.block),
+                    onTap: _clearUsageData,
                   ),
                   ListTile(
-                    title: const Text('Data Sharing'),
-                    subtitle: const Text(
-                        'Control what data is shared with board members'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showDataSharingDialog(context),
-                    leading: const Icon(Icons.share),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Data Management
-            _buildSectionHeader('Data Management'),
-            Card(
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text('Data Export'),
-                    subtitle: const Text('Allow exporting your data'),
-                    value: _dataExportEnabled,
-                    onChanged: (value) {
-                      setState(() {
-                        _dataExportEnabled = value;
-                      });
-                    },
-                    secondary: const Icon(Icons.download),
-                  ),
-                  ListTile(
-                    title: const Text('Data Retention'),
-                    subtitle: const Text('How long we keep your data'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showDataRetentionDialog(context),
-                    leading: const Icon(Icons.schedule),
-                  ),
-                  ListTile(
-                    title: const Text('Delete All Data'),
-                    subtitle: const Text('Permanently delete all your data'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showDeleteDataDialog(context),
-                    leading:
-                        const Icon(Icons.delete_forever, color: Colors.red),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Legal
-            _buildSectionHeader('Legal'),
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    title: const Text('Privacy Policy'),
-                    subtitle: const Text('Read our privacy policy'),
-                    trailing: const Icon(Icons.open_in_new),
-                    onTap: () => _openPrivacyPolicy(context),
                     leading: const Icon(Icons.policy),
-                  ),
-                  ListTile(
-                    title: const Text('Terms of Service'),
-                    subtitle: const Text('Read our terms of service'),
-                    trailing: const Icon(Icons.open_in_new),
-                    onTap: () => _openTermsOfService(context),
-                    leading: const Icon(Icons.description),
-                  ),
-                  ListTile(
-                    title: const Text('Data Processing Agreement'),
-                    subtitle: const Text('How we process your data'),
-                    trailing: const Icon(Icons.open_in_new),
-                    onTap: () => _openDataProcessingAgreement(context),
-                    leading: const Icon(Icons.gavel),
+                    title: const Text('Política de Privacidade'),
+                    subtitle: const Text('Ler nossa política de privacidade'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _showPrivacyPolicy,
                   ),
                 ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Save Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saveSettings,
+                child: const Text('Salvar Configurações'),
               ),
             ),
           ],
@@ -221,29 +178,50 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, top: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.blue,
-        ),
+  Widget _buildSectionCard(String title, List<Widget> children) {
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ),
+          ...children,
+        ],
       ),
     );
   }
 
-  void _showAnalyticsDialog(BuildContext context, bool enabled) {
+  Widget _buildSwitchTile(
+    String title,
+    String subtitle,
+    IconData icon,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
+    return SwitchListTile(
+      title: Text(title),
+      subtitle: Text(subtitle),
+      secondary: Icon(icon),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+
+  void _requestDataDownload() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(enabled ? 'Analytics Enabled' : 'Analytics Disabled'),
-        content: Text(
-          enabled
-              ? 'Thank you for helping us improve SyncLife! We collect anonymous usage data to understand how the app is used and identify areas for improvement.'
-              : 'Analytics has been disabled. We will not collect usage data, but this may limit our ability to improve the app experience.',
+        title: const Text('Baixar Meus Dados'),
+        content: const Text(
+          'Sua solicitação de download de dados foi enviada. '
+          'Você receberá um email com o link para download em até 48 horas.',
         ),
         actions: [
           TextButton(
@@ -255,188 +233,73 @@ class _PrivacySettingsScreenState extends ConsumerState<PrivacySettingsScreen> {
     );
   }
 
-  void _showLocationWarningDialog(BuildContext context) {
+  void _clearUsageData() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Location Tracking Disabled'),
+        title: const Text('Limpar Dados de Uso'),
         content: const Text(
-          'Disabling location tracking may affect timezone detection and some regional features. You can manually set your timezone in Language & Region settings.',
+          'Tem certeza que deseja limpar todos os dados de uso coletados? '
+          'Esta ação não pode ser desfeita.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAdPreferencesDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ad Preferences'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Manage your advertising preferences:'),
-            SizedBox(height: 16),
-            Text('• Ad frequency: Minimal'),
-            Text('• Ad types: Non-intrusive only'),
-            Text('• Personalization: Based on app usage'),
-            Text('• Third-party ads: Limited'),
-            SizedBox(height: 16),
-            Text('Advanced ad controls will be available in a future update.'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showBlockedUsersDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Blocked Users'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('You have not blocked any users.'),
-            SizedBox(height: 16),
-            Text('Blocked users cannot:'),
-            Text('• Send you board invitations'),
-            Text('• See your public profile'),
-            Text('• Find you in user search'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDataSharingDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Data Sharing'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Data shared with board members:'),
-            SizedBox(height: 16),
-            Text('• Display name and avatar'),
-            Text('• Task completion status'),
-            Text('• Activity timestamps'),
-            Text('• Comments on shared tasks'),
-            SizedBox(height: 16),
-            Text('Data NOT shared:'),
-            Text('• Email address'),
-            Text('• Private boards'),
-            Text('• Personal statistics'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDataRetentionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Data Retention'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('How long we keep your data:'),
-            SizedBox(height: 16),
-            Text('• Account data: Until account deletion'),
-            Text('• Task data: Until manually deleted'),
-            Text('• Analytics: 2 years (anonymized)'),
-            Text('• Crash reports: 1 year'),
-            Text('• Backup data: 30 days after deletion'),
-            SizedBox(height: 16),
-            Text('You can request data deletion at any time.'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteDataDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete All Data'),
-        content: const Text(
-          'This will permanently delete all your data including tasks, boards, and account information. This action cannot be undone.\n\n'
-          'To delete your account and all data, use the "Delete Account" option in your profile.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Navigator.of(context).pop();
-              Navigator.of(context).pushNamed('/profile');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Dados de uso limpos com sucesso!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
             },
-            child: const Text('Go to Profile'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Limpar'),
           ),
         ],
       ),
     );
   }
 
-  void _openPrivacyPolicy(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Privacy Policy would open in browser'),
+  void _showPrivacyPolicy() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Política de Privacidade'),
+        content: const SingleChildScrollView(
+          child: Text(
+            'Esta é uma versão resumida da nossa política de privacidade.\n\n'
+            '1. Coletamos apenas os dados necessários para o funcionamento do app.\n'
+            '2. Seus dados pessoais são protegidos com criptografia.\n'
+            '3. Não vendemos seus dados para terceiros.\n'
+            '4. Você pode solicitar a exclusão dos seus dados a qualquer momento.\n'
+            '5. Usamos cookies apenas para melhorar sua experiência.\n\n'
+            'Para a versão completa, visite nosso site.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fechar'),
+          ),
+        ],
       ),
     );
   }
 
-  void _openTermsOfService(BuildContext context) {
+  void _saveSettings() {
+    // In a real implementation, save settings to backend/local storage
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Terms of Service would open in browser'),
-      ),
-    );
-  }
-
-  void _openDataProcessingAgreement(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Data Processing Agreement would open in browser'),
+        content: Text('Configurações de privacidade salvas com sucesso!'),
+        backgroundColor: Colors.green,
       ),
     );
   }

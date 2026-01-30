@@ -25,6 +25,7 @@ class _NotificationCenterScreenState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   NotificationType? _selectedFilter;
+  bool _filtersExpanded = false; // Estado para controlar expansão dos filtros
 
   @override
   void initState() {
@@ -46,27 +47,6 @@ class _NotificationCenterScreenState
     return MainLayout(
       title: 'Notifications',
       actions: [
-        unreadCountAsync.when(
-          data: (count) => count > 0
-              ? Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.error,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onError,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink(),
-          loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
-        ),
         IconButton(
           onPressed: _markAllAsRead,
           icon: const Icon(Icons.done_all),
@@ -117,19 +97,12 @@ class _NotificationCenterScreenState
             ),
           ),
 
-          // Filter Chips (only for All Notifications tab)
+          // Collapsible Filter Section (only for All Notifications tab)
           AnimatedBuilder(
             animation: _tabController,
             builder: (context, child) {
               if (_tabController.index == 0) {
-                return NotificationFilterChips(
-                  selectedFilter: _selectedFilter,
-                  onFilterChanged: (filter) {
-                    setState(() {
-                      _selectedFilter = filter;
-                    });
-                  },
-                );
+                return _buildCollapsibleFilters();
               }
               return const SizedBox.shrink();
             },
@@ -147,6 +120,117 @@ class _NotificationCenterScreenState
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCollapsibleFilters() {
+    return Column(
+      children: [
+        // Filter toggle button
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).dividerColor,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _filtersExpanded = !_filtersExpanded;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.filter_list,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Filtros',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  // Show active filter indicator if any filter is applied
+                  if (_selectedFilter != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '1',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  
+                  // Clear filters button (only show when filters are active)
+                  if (_selectedFilter != null)
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedFilter = null;
+                        });
+                      },
+                      icon: const Icon(Icons.clear_all),
+                      tooltip: 'Limpar filtros',
+                      iconSize: 20,
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                    ),
+                  
+                  AnimatedRotation(
+                    turns: _filtersExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // Expandable filter content
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          height: _filtersExpanded ? null : 0,
+          child: _filtersExpanded
+              ? NotificationFilterChips(
+                  selectedFilter: _selectedFilter,
+                  onFilterChanged: (filter) {
+                    setState(() {
+                      _selectedFilter = filter;
+                    });
+                  },
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 

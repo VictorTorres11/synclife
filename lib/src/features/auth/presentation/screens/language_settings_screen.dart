@@ -2,393 +2,297 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/layout/main_layout.dart';
-import '../../domain/models/language_preferences.dart';
-import '../providers/language_providers.dart';
 
 /// Screen for managing language and region preferences
-class LanguageSettingsScreen extends ConsumerWidget {
+class LanguageSettingsScreen extends ConsumerStatefulWidget {
   const LanguageSettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final preferencesAsync = ref.watch(languagePreferencesNotifierProvider);
-    final supportedLanguages = ref.watch(supportedLanguagesProvider);
-    final supportedRegions = ref.watch(supportedRegionsProvider);
+  ConsumerState<LanguageSettingsScreen> createState() =>
+      _LanguageSettingsScreenState();
+}
 
+class _LanguageSettingsScreenState
+    extends ConsumerState<LanguageSettingsScreen> {
+  String _selectedLanguage = 'pt_BR';
+  String _selectedRegion = 'BR';
+  String _dateFormat = 'dd/MM/yyyy';
+  String _timeFormat = '24h';
+  String _currency = 'BRL';
+
+  final Map<String, String> _languages = {
+    'pt_BR': 'Português (Brasil)',
+    'en_US': 'English (United States)',
+    'es_ES': 'Español (España)',
+    'fr_FR': 'Français (France)',
+    'de_DE': 'Deutsch (Deutschland)',
+    'it_IT': 'Italiano (Italia)',
+  };
+
+  final Map<String, String> _regions = {
+    'BR': 'Brasil',
+    'US': 'Estados Unidos',
+    'ES': 'Espanha',
+    'FR': 'França',
+    'DE': 'Alemanha',
+    'IT': 'Itália',
+  };
+
+  final Map<String, String> _dateFormats = {
+    'dd/MM/yyyy': 'DD/MM/AAAA (31/12/2024)',
+    'MM/dd/yyyy': 'MM/DD/AAAA (12/31/2024)',
+    'yyyy-MM-dd': 'AAAA-MM-DD (2024-12-31)',
+    'dd-MM-yyyy': 'DD-MM-AAAA (31-12-2024)',
+  };
+
+  final Map<String, String> _timeFormats = {
+    '24h': '24 horas (14:30)',
+    '12h': '12 horas (2:30 PM)',
+  };
+
+  final Map<String, String> _currencies = {
+    'BRL': 'Real Brasileiro (R\$)',
+    'USD': 'Dólar Americano (\$)',
+    'EUR': 'Euro (€)',
+    'GBP': 'Libra Esterlina (£)',
+  };
+
+  @override
+  Widget build(BuildContext context) {
     return MainLayout(
-      title: 'Language & Region',
-      actions: [
-        IconButton(
-          onPressed: () => _showResetDialog(context, ref),
-          icon: const Icon(Icons.refresh),
-          tooltip: 'Reset to defaults',
-        ),
-      ],
-      child: preferencesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error loading preferences: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () =>
-                    ref.refresh(languagePreferencesNotifierProvider),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-        data: (preferences) => SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Auto-detection toggle
-              Card(
-                child: SwitchListTile(
-                  title: const Text('Auto-detect language and region'),
-                  subtitle: const Text('Use device settings automatically'),
-                  value: preferences.isAutoDetected,
-                  onChanged: (value) {
-                    if (value) {
-                      ref
-                          .read(languagePreferencesNotifierProvider.notifier)
-                          .enableAutoDetection();
-                    }
-                  },
-                  secondary: const Icon(Icons.auto_awesome),
+      title: 'Idioma e Região',
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Language Selection
+            _buildSectionCard(
+              'Idioma',
+              [
+                _buildDropdownTile(
+                  'Idioma do Aplicativo',
+                  'Selecione o idioma da interface',
+                  Icons.language,
+                  _selectedLanguage,
+                  _languages,
+                  (value) => setState(() => _selectedLanguage = value!),
                 ),
-              ),
+              ],
+            ),
 
-              const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-              // Language Selection
-              _buildSectionHeader('Language'),
-              Card(
-                child: Column(
-                  children: supportedLanguages.map((language) {
-                    return RadioListTile<String>(
-                      title: Text(language.displayName),
-                      subtitle: Text('Code: ${language.code}'),
-                      value: language.code,
-                      groupValue: preferences.languageCode,
-                      onChanged: preferences.isAutoDetected
-                          ? null
-                          : (value) {
-                              if (value != null) {
-                                ref
-                                    .read(languagePreferencesNotifierProvider
-                                        .notifier)
-                                    .updateLanguage(value);
-                              }
-                            },
-                    );
-                  }).toList(),
+            // Region Selection
+            _buildSectionCard(
+              'Região',
+              [
+                _buildDropdownTile(
+                  'Região',
+                  'Selecione sua região',
+                  Icons.public,
+                  _selectedRegion,
+                  _regions,
+                  (value) => setState(() => _selectedRegion = value!),
                 ),
-              ),
+              ],
+            ),
 
-              const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-              // Region Selection
-              _buildSectionHeader('Region'),
-              Card(
-                child: Column(
-                  children: supportedRegions.map((region) {
-                    return RadioListTile<String>(
-                      title: Text(region.displayName),
-                      subtitle: Text('Code: ${region.code}'),
-                      value: region.code,
-                      groupValue: preferences.countryCode,
-                      onChanged: preferences.isAutoDetected
-                          ? null
-                          : (value) {
-                              if (value != null) {
-                                ref
-                                    .read(languagePreferencesNotifierProvider
-                                        .notifier)
-                                    .updateRegion(value);
-                              }
-                            },
-                    );
-                  }).toList(),
+            // Format Settings
+            _buildSectionCard(
+              'Formatos',
+              [
+                _buildDropdownTile(
+                  'Formato de Data',
+                  'Como as datas serão exibidas',
+                  Icons.calendar_today,
+                  _dateFormat,
+                  _dateFormats,
+                  (value) => setState(() => _dateFormat = value!),
                 ),
-              ),
+                _buildDropdownTile(
+                  'Formato de Hora',
+                  'Como os horários serão exibidos',
+                  Icons.access_time,
+                  _timeFormat,
+                  _timeFormats,
+                  (value) => setState(() => _timeFormat = value!),
+                ),
+                _buildDropdownTile(
+                  'Moeda',
+                  'Moeda padrão para valores',
+                  Icons.attach_money,
+                  _currency,
+                  _currencies,
+                  (value) => setState(() => _currency = value!),
+                ),
+              ],
+            ),
 
-              const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-              // Format Settings
-              _buildSectionHeader('Format Settings'),
-              Card(
+            // Preview Section
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ListTile(
-                      title: const Text('Date Format'),
-                      subtitle: Text(preferences.dateFormat),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () =>
-                          _showDateFormatDialog(context, ref, preferences),
-                      enabled: !preferences.isAutoDetected,
+                    Text(
+                      'Visualização',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
-                    ListTile(
-                      title: const Text('Time Format'),
-                      subtitle: Text(preferences.timeFormat),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () =>
-                          _showTimeFormatDialog(context, ref, preferences),
-                      enabled: !preferences.isAutoDetected,
+                    const SizedBox(height: 12),
+                    _buildPreviewItem(
+                      'Data:',
+                      _formatDatePreview(),
                     ),
-                    ListTile(
-                      title: const Text('Timezone'),
-                      subtitle: Text(preferences.timezone),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () =>
-                          _showTimezoneDialog(context, ref, preferences),
-                      enabled: !preferences.isAutoDetected,
+                    _buildPreviewItem(
+                      'Hora:',
+                      _formatTimePreview(),
+                    ),
+                    _buildPreviewItem(
+                      'Moeda:',
+                      _formatCurrencyPreview(),
                     ),
                   ],
                 ),
               ),
+            ),
 
-              const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-              // Current Settings Summary
-              _buildSectionHeader('Current Settings'),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildInfoRow('Language', preferences.languageCode),
-                      _buildInfoRow('Region', preferences.countryCode),
-                      _buildInfoRow('Timezone', preferences.timezone),
-                      _buildInfoRow('Date Format', preferences.dateFormat),
-                      _buildInfoRow('Time Format', preferences.timeFormat),
-                      _buildInfoRow('Auto-detected',
-                          preferences.isAutoDetected ? 'Yes' : 'No'),
-                    ],
-                  ),
-                ),
+            // Save Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saveSettings,
+                child: const Text('Salvar Configurações'),
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard(String title, List<Widget> children) {
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
           ),
-        ),
+          ...children,
+        ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, top: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.blue,
-        ),
+  Widget _buildDropdownTile(
+    String title,
+    String subtitle,
+    IconData icon,
+    String value,
+    Map<String, String> options,
+    ValueChanged<String?> onChanged,
+  ) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: DropdownButton<String>(
+        value: value,
+        underline: const SizedBox(),
+        items: options.entries.map((entry) {
+          return DropdownMenuItem(
+            value: entry.key,
+            child: Text(entry.value),
+          );
+        }).toList(),
+        onChanged: onChanged,
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildPreviewItem(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
           ),
-          Text(
-            value,
-            style: const TextStyle(color: Colors.grey),
-          ),
+          Text(value),
         ],
       ),
     );
   }
 
-  void _showDateFormatDialog(
-    BuildContext context,
-    WidgetRef ref,
-    LanguagePreferences preferences,
-  ) {
-    final formats = ['MM/dd/yyyy', 'dd/MM/yyyy', 'yyyy-MM-dd', 'dd-MM-yyyy'];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Date Format'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: formats.map((format) {
-            return RadioListTile<String>(
-              title: Text(format),
-              subtitle: Text('Example: ${_formatExample(format)}'),
-              value: format,
-              groupValue: preferences.dateFormat,
-              onChanged: (value) {
-                if (value != null) {
-                  ref
-                      .read(languagePreferencesNotifierProvider.notifier)
-                      .updateDateFormat(value);
-                  Navigator.of(context).pop();
-                }
-              },
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showTimeFormatDialog(
-    BuildContext context,
-    WidgetRef ref,
-    LanguagePreferences preferences,
-  ) {
-    final formats = ['12h', '24h'];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Time Format'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: formats.map((format) {
-            return RadioListTile<String>(
-              title: Text(format == '12h' ? '12-hour' : '24-hour'),
-              subtitle:
-                  Text(format == '12h' ? 'Example: 2:30 PM' : 'Example: 14:30'),
-              value: format,
-              groupValue: preferences.timeFormat,
-              onChanged: (value) {
-                if (value != null) {
-                  ref
-                      .read(languagePreferencesNotifierProvider.notifier)
-                      .updateTimeFormat(value);
-                  Navigator.of(context).pop();
-                }
-              },
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showTimezoneDialog(
-    BuildContext context,
-    WidgetRef ref,
-    LanguagePreferences preferences,
-  ) {
-    final timezones = [
-      'UTC',
-      'America/New_York',
-      'America/Los_Angeles',
-      'America/Sao_Paulo',
-      'Europe/London',
-      'Europe/Paris',
-      'Asia/Tokyo',
-      'Australia/Sydney',
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Timezone'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 300,
-          child: ListView(
-            children: timezones.map((timezone) {
-              return RadioListTile<String>(
-                title: Text(timezone),
-                value: timezone,
-                groupValue: preferences.timezone,
-                onChanged: (value) {
-                  if (value != null) {
-                    ref
-                        .read(languagePreferencesNotifierProvider.notifier)
-                        .updateTimezone(value);
-                    Navigator.of(context).pop();
-                  }
-                },
-              );
-            }).toList(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showResetDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset Settings'),
-        content: const Text(
-          'Are you sure you want to reset all language and region settings to defaults?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              ref
-                  .read(languagePreferencesNotifierProvider.notifier)
-                  .resetToDefaults();
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Settings reset to defaults')),
-              );
-            },
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatExample(String format) {
+  String _formatDatePreview() {
     final now = DateTime.now();
-    switch (format) {
-      case 'MM/dd/yyyy':
-        return '${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/${now.year}';
+    switch (_dateFormat) {
       case 'dd/MM/yyyy':
         return '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+      case 'MM/dd/yyyy':
+        return '${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}/${now.year}';
       case 'yyyy-MM-dd':
         return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       case 'dd-MM-yyyy':
         return '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
       default:
-        return format;
+        return '${now.day}/${now.month}/${now.year}';
     }
+  }
+
+  String _formatTimePreview() {
+    final now = DateTime.now();
+    if (_timeFormat == '12h') {
+      final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+      final period = now.hour >= 12 ? 'PM' : 'AM';
+      return '${hour}:${now.minute.toString().padLeft(2, '0')} $period';
+    } else {
+      return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    }
+  }
+
+  String _formatCurrencyPreview() {
+    switch (_currency) {
+      case 'BRL':
+        return 'R\$ 123,45';
+      case 'USD':
+        return '\$ 123.45';
+      case 'EUR':
+        return '€ 123,45';
+      case 'GBP':
+        return '£ 123.45';
+      default:
+        return 'R\$ 123,45';
+    }
+  }
+
+  void _saveSettings() {
+    // In a real implementation, save settings to backend/local storage
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Configurações de idioma e região salvas com sucesso!'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 }

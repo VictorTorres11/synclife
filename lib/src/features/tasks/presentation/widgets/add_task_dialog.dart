@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/models/create_task_request.dart';
 import '../../domain/models/task_recurrence.dart';
+import '../../domain/models/board.dart';
 
 /// Dialog for creating a new task
 class AddTaskDialog extends StatefulWidget {
@@ -8,14 +9,16 @@ class AddTaskDialog extends StatefulWidget {
     super.key,
     required this.onCreateTask,
     required this.availableTags,
-    required this.boardId,
+    required this.availableBoards,
     required this.userId,
+    this.selectedBoardId,
   });
 
   final Function(CreateTaskRequest) onCreateTask;
   final List<String> availableTags;
-  final String boardId;
+  final List<Board> availableBoards;
   final String userId;
+  final String? selectedBoardId;
 
   @override
   State<AddTaskDialog> createState() => _AddTaskDialogState();
@@ -29,6 +32,15 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   DateTime? _selectedDueDate;
   TaskRecurrence _selectedRecurrence = TaskRecurrence.none;
   List<String> _selectedTags = [];
+  String? _selectedBoardId;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set default board selection
+    _selectedBoardId = widget.selectedBoardId ?? 
+        (widget.availableBoards.isNotEmpty ? widget.availableBoards.first.id : null);
+  }
   
   @override
   void dispose() {
@@ -94,6 +106,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                         maxLines: 3,
                       ),
                       const SizedBox(height: 16),
+                      _buildBoardSelectionField(),
+                      const SizedBox(height: 16),
                       _buildDueDateField(),
                       const SizedBox(height: 16),
                       _buildRecurrenceField(),
@@ -145,6 +159,53 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBoardSelectionField() {
+    if (widget.availableBoards.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return DropdownButtonFormField<String>(
+      value: _selectedBoardId,
+      decoration: const InputDecoration(
+        labelText: 'Quadro de Destino',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.dashboard),
+      ),
+      items: widget.availableBoards.map((board) {
+        return DropdownMenuItem(
+          value: board.id,
+          child: Row(
+            children: [
+              Icon(
+                board.type.name == 'shared' ? Icons.group : Icons.lock,
+                size: 16,
+                color: board.type.name == 'shared' ? Colors.blue : Colors.grey,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  board.name,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedBoardId = value;
+        });
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Por favor, selecione um quadro';
+        }
+        return null;
+      },
     );
   }
 
@@ -235,12 +296,22 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
 
   void _createTask() {
     if (_formKey.currentState?.validate() ?? false) {
+      if (_selectedBoardId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor, selecione um quadro'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       final request = CreateTaskRequest(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim().isEmpty 
             ? null 
             : _descriptionController.text.trim(),
-        boardId: widget.boardId,
+        boardId: _selectedBoardId!,
         recurrence: _selectedRecurrence,
         dueDate: _selectedDueDate,
         tags: _selectedTags,

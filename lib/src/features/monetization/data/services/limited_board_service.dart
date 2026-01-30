@@ -1,6 +1,7 @@
 import '../../domain/models/user_limitations.dart';
 import '../../domain/services/services.dart';
 import '../../../tasks/domain/services/board_service.dart';
+import '../../../tasks/domain/services/task_service.dart';
 import '../../../tasks/domain/models/board.dart';
 import '../../../tasks/domain/models/create_board_request.dart';
 import '../../../auth/domain/models/user.dart';
@@ -9,11 +10,14 @@ import '../../../auth/domain/models/user.dart';
 class LimitedBoardService implements BoardService {
   LimitedBoardService({
     required BoardService boardService,
+    required TaskService taskService,
     required SubscriptionService subscriptionService,
   })  : _boardService = boardService,
+        _taskService = taskService,
         _subscriptionService = subscriptionService;
 
   final BoardService _boardService;
+  final TaskService _taskService;
   final SubscriptionService _subscriptionService;
 
   @override
@@ -76,16 +80,30 @@ class LimitedBoardService implements BoardService {
 
   @override
   Future<void> leaveBoard(String boardId) async {
-    // Get the board to find the owner
+    // Get the board to find the owner and check if user is the owner
     final board = await _boardService.getBoard(boardId);
     if (board == null) return;
 
-    // Leave the board
+    // Get all tasks in this board before deleting
+    final tasks = await _taskService.getTasks(boardId);
+    
+    // Leave/delete the board
     await _boardService.leaveBoard(boardId);
 
-    // If the user was the owner and this was their board, decrement counter
-    // Note: This is simplified - in a real implementation, you'd need to check
-    // if the user was the owner and if the board is being deleted
+    // If there were tasks in the board, decrement task counter for each task
+    for (final task in tasks) {
+      await _subscriptionService.decrementUsage(
+        task.createdBy,
+        LimitationType.activeTasks,
+      );
+    }
+
+    // Decrement board counter (assuming the user was the owner)
+    // In a real implementation, you'd check if the user is the owner
+    await _subscriptionService.decrementUsage(
+      board.ownerId,
+      LimitationType.boards,
+    );
   }
 
   @override

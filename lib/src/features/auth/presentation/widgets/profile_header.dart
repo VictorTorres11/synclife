@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:image_picker/image_picker.dart';
 
 import '../../domain/models/models.dart';
-import '../providers/auth_providers.dart';
 
 /// Widget displaying user profile header with avatar and basic info
-class ProfileHeader extends ConsumerWidget {
+class ProfileHeader extends ConsumerStatefulWidget {
   const ProfileHeader({
     super.key,
     required this.user,
@@ -15,7 +15,20 @@ class ProfileHeader extends ConsumerWidget {
   final User user;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileHeader> createState() => _ProfileHeaderState();
+}
+
+class _ProfileHeaderState extends ConsumerState<ProfileHeader> {
+  String? _currentPhotoURL;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPhotoURL = widget.user.photoURL;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Card(
@@ -32,10 +45,10 @@ class ProfileHeader extends ConsumerWidget {
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    backgroundImage: user.photoURL != null
-                        ? NetworkImage(user.photoURL!)
+                    backgroundImage: _currentPhotoURL != null
+                        ? NetworkImage(_currentPhotoURL!)
                         : null,
-                    child: user.photoURL == null
+                    child: _currentPhotoURL == null
                         ? Icon(
                             Icons.person,
                             size: 40,
@@ -77,7 +90,7 @@ class ProfileHeader extends ConsumerWidget {
                 children: [
                   // Display Name
                   Text(
-                    user.displayName ?? 'User',
+                    widget.user.displayName ?? 'User',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -87,7 +100,7 @@ class ProfileHeader extends ConsumerWidget {
 
                   // Email
                   Text(
-                    user.email,
+                    widget.user.email,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -97,7 +110,7 @@ class ProfileHeader extends ConsumerWidget {
 
                   // Member Since
                   Text(
-                    'Member since ${_formatDate(user.createdAt)}',
+                    'Member since ${_formatDate(widget.user.createdAt)}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
@@ -159,7 +172,7 @@ class ProfileHeader extends ConsumerWidget {
                 _takePhoto(context);
               },
             ),
-            if (user.photoURL != null)
+            if (_currentPhotoURL != null)
               ListTile(
                 leading: const Icon(Icons.delete),
                 title: const Text('Remove Photo'),
@@ -174,29 +187,169 @@ class ProfileHeader extends ConsumerWidget {
     );
   }
 
-  void _selectFromGallery(BuildContext context) {
-    // Implement gallery selection
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Gallery selection not implemented yet')),
-    );
+  void _selectFromGallery(BuildContext context) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+      
+      if (image != null) {
+        await _updateProfilePhoto(context, image);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao selecionar foto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _takePhoto(BuildContext context) {
-    // Implement camera capture
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Camera capture not implemented yet')),
-    );
+  void _takePhoto(BuildContext context) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+      
+      if (image != null) {
+        await _updateProfilePhoto(context, image);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao capturar foto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _removePhoto(BuildContext context) {
-    // Implement photo removal
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Photo removal not implemented yet')),
-    );
+  Future<void> _updateProfilePhoto(BuildContext context, XFile image) async {
+    try {
+      // Show loading indicator
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text('Atualizando foto de perfil...'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // For now, we'll simulate the upload and use a local file
+      // In a real implementation, you would upload to Firebase Storage
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        // For demo purposes, we'll use the local file path
+        // In production, upload to Firebase Storage and get the download URL
+        await firebaseUser.updatePhotoURL('file://${image.path}');
+        await firebaseUser.reload();
+        
+        // Force refresh of the current user in the app
+        final updatedUser = firebase_auth.FirebaseAuth.instance.currentUser;
+        if (updatedUser != null && mounted) {
+          setState(() {
+            _currentPhotoURL = updatedUser.photoURL;
+          });
+        }
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Foto de perfil atualizada com sucesso!'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          
+          // Force a rebuild of the parent widget
+          // Already handled by setState above
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao atualizar foto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _removePhoto(BuildContext context) async {
+    try {
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        await firebaseUser.updatePhotoURL(null);
+        await firebaseUser.reload();
+        
+        if (mounted) {
+          setState(() {
+            _currentPhotoURL = null;
+          });
+        }
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Foto de perfil removida com sucesso!'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao remover foto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showEditProfileDialog(BuildContext context, WidgetRef ref) {
-    final displayNameController = TextEditingController(text: user.displayName);
+    final displayNameController = TextEditingController(text: widget.user.displayName);
 
     showDialog(
       context: context,

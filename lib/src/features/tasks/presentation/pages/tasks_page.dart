@@ -30,6 +30,8 @@ class _TasksPageState extends ConsumerState<TasksPage>
   late TabController _tabController;
   TaskFilter _selectedFilter = TaskFilter.all;
   List<String> _selectedTags = [];
+  bool _filtersExpanded = false; // Estado para controlar expansão dos filtros
+  List<String> _selectedBoardIds = []; // IDs dos boards selecionados
 
   final List<String> _availableTags = [
     'Health',
@@ -109,30 +111,17 @@ class _TasksPageState extends ConsumerState<TasksPage>
           return _buildNoBoardsView(userId);
         }
 
-        // Use the first board as default for now
-        final defaultBoard = boards.first;
-        final tasksAsync = ref.watch(watchTasksProvider(defaultBoard.id));
+        // Initialize selected boards if empty (select first board by default)
+        if (_selectedBoardIds.isEmpty && boards.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+              _selectedBoardIds = [boards.first.id];
+            });
+          });
+        }
 
-        return tasksAsync.when(
-          data: (tasks) => _buildTasksList(tasks, defaultBoard.id, userId),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                Text('Error loading tasks: $error'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () =>
-                      ref.invalidate(watchTasksProvider(defaultBoard.id)),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        );
+        // Get tasks from all selected boards
+        return _buildTasksListWithBoardSelector(boards, userId);
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(
@@ -150,6 +139,121 @@ class _TasksPageState extends ConsumerState<TasksPage>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTasksListWithBoardSelector(List<Board> boards, String userId) {
+    if (_selectedBoardIds.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // For simplicity, let's use the first selected board for now
+    // and show tasks from all selected boards
+    final firstBoardId = _selectedBoardIds.first;
+    final tasksAsync = ref.watch(watchTasksProvider(firstBoardId));
+
+    return tasksAsync.when(
+      data: (firstBoardTasks) {
+        // Get tasks from all selected boards
+        final allTasks = <Task>[...firstBoardTasks];
+        
+        // Add tasks from other selected boards
+        for (int i = 1; i < _selectedBoardIds.length; i++) {
+          final otherBoardAsync = ref.watch(watchTasksProvider(_selectedBoardIds[i]));
+          otherBoardAsync.whenData((tasks) => allTasks.addAll(tasks));
+        }
+
+        return Column(
+          children: [
+            // Board selector
+            _buildBoardSelector(boards),
+            
+            // Usage indicator for tasks
+            const UsageIndicator(
+              limitationType: LimitationType.activeTasks,
+              compact: true,
+            ),
+
+            // Limitation banner if at limit
+            const LimitationBanner(
+              limitationType: LimitationType.activeTasks,
+            ),
+
+            // Collapsible filter section
+            _buildCollapsibleFilters(),
+            
+            const Divider(height: 1),
+            
+            Expanded(
+              key: SyncLifeOnboardingSteps.taskListKey,
+              child: _buildTasksContent(allTasks, userId),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error loading tasks: $error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(watchTasksProvider(firstBoardId)),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTasksContent(List<Task> allTasks, String userId) {
+    final filteredTasks = _getFilteredTasks(allTasks);
+    
+    if (filteredTasks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.task_alt,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No tasks found',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap + to create your first task',
+              style: TextStyle(
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: filteredTasks.length,
+      itemBuilder: (context, index) {
+        final task = filteredTasks[index];
+        return TaskListItem(
+          task: task,
+          onComplete: () => _completeTask(task),
+          onPostpone: () => _postponeTask(task),
+          onTap: () => _showTaskDetails(task),
+        );
+      },
     );
   }
 
@@ -186,85 +290,6 @@ class _TasksPageState extends ConsumerState<TasksPage>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTasksList(List<Task> tasks, String boardId, String userId) {
-    final filteredTasks = _getFilteredTasks(tasks);
-
-    return Column(
-      children: [
-        // Usage indicator for tasks
-        const UsageIndicator(
-          limitationType: LimitationType.activeTasks,
-          compact: true,
-        ),
-
-        // Limitation banner if at limit
-        const LimitationBanner(
-          limitationType: LimitationType.activeTasks,
-        ),
-
-        TaskFilterBar(
-          selectedFilter: _selectedFilter,
-          onFilterChanged: (filter) {
-            setState(() {
-              _selectedFilter = filter;
-            });
-          },
-          selectedTags: _selectedTags,
-          onTagsChanged: (tags) {
-            setState(() {
-              _selectedTags = tags;
-            });
-          },
-          availableTags: _availableTags,
-        ),
-        const Divider(height: 1),
-        Expanded(
-          key: SyncLifeOnboardingSteps.taskListKey,
-          child: filteredTasks.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.task_alt,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No tasks found',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap + to create your first task',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: filteredTasks.length,
-                  itemBuilder: (context, index) {
-                    final task = filteredTasks[index];
-                    return TaskListItem(
-                      task: task,
-                      onComplete: () => _completeTask(task),
-                      onPostpone: () => _postponeTask(task),
-                      onTap: () => _showTaskDetails(task),
-                    );
-                  },
-                ),
-        ),
-      ],
     );
   }
 
@@ -342,6 +367,213 @@ class _TasksPageState extends ConsumerState<TasksPage>
     });
 
     return filtered;
+  }
+
+  Widget _buildBoardSelector(List<Board> boards) {
+    final selectedBoards = boards.where((board) => _selectedBoardIds.contains(board.id)).toList();
+    
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: InkWell(
+        onTap: () => _showBoardSelectionModal(boards),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                Icons.dashboard,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selectedBoards.length == 1 
+                          ? selectedBoards.first.name
+                          : '${selectedBoards.length} quadros selecionados',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    if (selectedBoards.length > 1) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        selectedBoards.map((b) => b.name).join(', '),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.keyboard_arrow_down,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showBoardSelectionModal(List<Board> boards) async {
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _BoardSelectionModal(
+        boards: boards,
+        selectedBoardIds: _selectedBoardIds,
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedBoardIds = result;
+      });
+    }
+  }
+
+  Widget _buildCollapsibleFilters() {
+    return Column(
+      children: [
+        // Filter toggle button
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).dividerColor,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _filtersExpanded = !_filtersExpanded;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.filter_list,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Filtros',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  // Show active filter count if any filters are applied
+                  if (_selectedFilter != TaskFilter.all || _selectedTags.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        _getActiveFilterCount().toString(),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  
+                  // Clear filters button (only show when filters are active)
+                  if (_selectedFilter != TaskFilter.all || _selectedTags.isNotEmpty)
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedFilter = TaskFilter.all;
+                          _selectedTags.clear();
+                        });
+                      },
+                      icon: const Icon(Icons.clear_all),
+                      tooltip: 'Limpar todos os filtros',
+                      iconSize: 20,
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                    ),
+                  AnimatedRotation(
+                    turns: _filtersExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // Expandable filter content
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          height: _filtersExpanded ? null : 0,
+          child: _filtersExpanded
+              ? TaskFilterBar(
+                  selectedFilter: _selectedFilter,
+                  onFilterChanged: (filter) {
+                    setState(() {
+                      _selectedFilter = filter;
+                    });
+                  },
+                  selectedTags: _selectedTags,
+                  onTagsChanged: (tags) {
+                    setState(() {
+                      _selectedTags = tags;
+                    });
+                  },
+                  availableTags: _availableTags,
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+
+  int _getActiveFilterCount() {
+    int count = 0;
+    if (_selectedFilter != TaskFilter.all) count++;
+    count += _selectedTags.length;
+    return count;
   }
 
   Future<void> _completeTask(Task task) async {
@@ -514,7 +746,7 @@ class _TasksPageState extends ConsumerState<TasksPage>
                 if (updatedBoards.isEmpty) {
                   throw Exception('Failed to create default board');
                 }
-                await _showTaskDialog(updatedBoards.first, userId);
+                await _showTaskDialog(updatedBoards, userId);
               },
               loading: () async {
                 throw Exception('Still loading boards after creation...');
@@ -524,7 +756,7 @@ class _TasksPageState extends ConsumerState<TasksPage>
               },
             );
           } else {
-            await _showTaskDialog(boards.first, userId);
+            await _showTaskDialog(boards, userId);
           }
         },
         loading: () async {
@@ -546,24 +778,25 @@ class _TasksPageState extends ConsumerState<TasksPage>
     }
   }
 
-  Future<void> _showTaskDialog(Board board, String userId) async {
+  Future<void> _showTaskDialog(List<Board> boards, String userId) async {
     if (mounted) {
       await showDialog(
         context: context,
         builder: (context) => AddTaskDialog(
-          onCreateTask: (request) => _createTask(request, board.id),
+          onCreateTask: (request) => _createTask(request),
           availableTags: _availableTags,
-          boardId: board.id,
+          availableBoards: boards,
           userId: userId,
+          selectedBoardId: _selectedBoardIds.isNotEmpty ? _selectedBoardIds.first : null,
         ),
       );
     }
   }
 
-  Future<void> _createTask(CreateTaskRequest request, String boardId) async {
+  Future<void> _createTask(CreateTaskRequest request) async {
     try {
       final taskService = ref.read(taskServiceProvider);
-      await taskService.createTask(request.copyWith(boardId: boardId));
+      await taskService.createTask(request);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -952,5 +1185,171 @@ class _ConvertToTaskDialogState extends State<_ConvertToTaskDialog> {
     );
 
     Navigator.of(context).pop(request);
+  }
+}
+/// Modal for selecting multiple boards
+class _BoardSelectionModal extends StatefulWidget {
+  const _BoardSelectionModal({
+    required this.boards,
+    required this.selectedBoardIds,
+  });
+
+  final List<Board> boards;
+  final List<String> selectedBoardIds;
+
+  @override
+  State<_BoardSelectionModal> createState() => _BoardSelectionModalState();
+}
+
+class _BoardSelectionModalState extends State<_BoardSelectionModal> {
+  late List<String> _tempSelectedIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _tempSelectedIds = List.from(widget.selectedBoardIds);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) {
+          return Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Text(
+                      'Selecionar Quadros',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          if (_tempSelectedIds.length == widget.boards.length) {
+                            _tempSelectedIds.clear();
+                          } else {
+                            _tempSelectedIds = widget.boards.map((b) => b.id).toList();
+                          }
+                        });
+                      },
+                      child: Text(
+                        _tempSelectedIds.length == widget.boards.length 
+                            ? 'Desmarcar Todos' 
+                            : 'Selecionar Todos',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Board list
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: widget.boards.length,
+                  itemBuilder: (context, index) {
+                    final board = widget.boards[index];
+                    final isSelected = _tempSelectedIds.contains(board.id);
+                    
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: CheckboxListTile(
+                        value: isSelected,
+                        onChanged: (value) {
+                          setState(() {
+                            if (value == true) {
+                              _tempSelectedIds.add(board.id);
+                            } else {
+                              _tempSelectedIds.remove(board.id);
+                            }
+                          });
+                        },
+                        title: Text(
+                          board.name,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: board.description != null 
+                            ? Text(
+                                board.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            : null,
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.dashboard,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 20,
+                          ),
+                        ),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
+              // Action buttons
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _tempSelectedIds.isEmpty 
+                            ? null 
+                            : () => Navigator.of(context).pop(_tempSelectedIds),
+                        child: Text(
+                          'Aplicar (${_tempSelectedIds.length})',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }

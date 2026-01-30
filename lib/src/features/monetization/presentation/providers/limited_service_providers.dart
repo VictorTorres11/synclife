@@ -34,9 +34,11 @@ final limitedTaskServiceProvider = Provider<TaskService>((ref) {
 /// Provider for limited board service that enforces usage limits
 final limitedBoardServiceProvider = Provider<BoardService>((ref) {
   final baseBoardService = ref.watch(baseBoardServiceProvider);
+  final baseTaskService = ref.watch(baseTaskServiceProvider);
   final subscriptionService = ref.watch(subscriptionServiceProvider);
   return LimitedBoardService(
     boardService: baseBoardService,
+    taskService: baseTaskService,
     subscriptionService: subscriptionService,
   );
 });

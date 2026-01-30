@@ -1,13 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/sync/providers/sync_providers.dart';
+import '../../../monetization/presentation/providers/limited_service_providers.dart';
 import '../../domain/models/task.dart';
 import '../../domain/models/inbox_item.dart';
 import '../../domain/services/task_service.dart';
 
-/// Main task service provider - uses offline-first service
+/// Main task service provider - uses limited service that enforces usage limits
 final taskServiceProvider = Provider<TaskService>((ref) {
-  return ref.read(offlineTaskServiceProvider);
+  return ref.read(limitedTaskServiceProvider);
 });
 
 /// Provider for tasks by board ID

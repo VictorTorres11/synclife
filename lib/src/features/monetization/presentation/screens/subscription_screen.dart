@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/layout/main_layout.dart';
 import '../../domain/models/models.dart';
 import '../../domain/services/subscription_service.dart';
 import '../providers/monetization_providers.dart';
@@ -14,8 +15,9 @@ class SubscriptionScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(
+      return const MainLayout(
+        title: 'Premium Subscription',
+        child: Center(
           child: Text('Please log in to manage your subscription'),
         ),
       );
@@ -25,16 +27,17 @@ class SubscriptionScreen extends ConsumerWidget {
     final limitationsAsync = ref.watch(userLimitationsProvider(user.id));
     final productsAsync = ref.watch(availableProductsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Premium Subscription'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: SingleChildScrollView(
+    return MainLayout(
+      title: 'Premium Subscription',
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Premium Header
+            _buildPremiumHeader(context),
+            const SizedBox(height: 24),
+
             // Current subscription status
             _buildSubscriptionStatus(context, subscriptionAsync),
             const SizedBox(height: 24),
@@ -285,78 +288,133 @@ class SubscriptionScreen extends ConsumerWidget {
     String userId,
   ) {
     final isYearly = product.billingPeriod == BillingPeriod.yearly;
+    final theme = Theme.of(context);
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        product.description,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
+      elevation: isYearly ? 4 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: isYearly 
+          ? BorderSide(color: theme.colorScheme.primary, width: 2)
+          : BorderSide.none,
+      ),
+      child: Container(
+        decoration: isYearly ? BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
+              theme.colorScheme.primaryContainer.withValues(alpha: 0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ) : null,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isYearly)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '🔥 MOST POPULAR - SAVE 20%',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      product.price,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              if (isYearly) const SizedBox(height: 16),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.title,
+                          style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
                           ),
-                    ),
-                    Text(
-                      isYearly ? 'per year' : 'per month',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    if (isYearly)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text(
-                          'Save 20%',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                        const SizedBox(height: 8),
+                        Text(
+                          product.description,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        product.price,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () =>
-                    _purchaseSubscription(ref, userId, product.plan),
-                child: Text('Subscribe ${isYearly ? 'Yearly' : 'Monthly'}'),
+                      Text(
+                        isYearly ? 'per year' : 'per month',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      if (isYearly)
+                        Text(
+                          '~\$4.17/month',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => _purchaseSubscription(ref, userId, product.plan),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isYearly 
+                      ? theme.colorScheme.primary 
+                      : theme.colorScheme.secondary,
+                    foregroundColor: isYearly 
+                      ? theme.colorScheme.onPrimary 
+                      : theme.colorScheme.onSecondary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: isYearly ? 4 : 2,
+                  ),
+                  child: Text(
+                    'Subscribe ${isYearly ? 'Yearly' : 'Monthly'}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -372,16 +430,94 @@ class SubscriptionScreen extends ConsumerWidget {
       await subscriptionService.purchaseSubscription(userId, plan);
 
       // Show success message
-      // Note: In a real app, you'd want to show this in the UI context
-      print('Subscription purchase initiated for plan: $plan');
+      final context = ref.context;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Subscription purchase initiated for ${plan.name} plan!'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } catch (e) {
       // Show error message
-      print('Failed to purchase subscription: $e');
+      final context = ref.context;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Failed to purchase subscription: ${e.toString()}'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget _buildPremiumHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.primary.withValues(alpha: 0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.workspace_premium,
+            size: 64,
+            color: theme.colorScheme.onPrimary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Upgrade to Premium',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: theme.colorScheme.onPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Unlock unlimited features and enhance your productivity',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 }
 

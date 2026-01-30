@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../domain/models/models.dart';
 import '../providers/gamification_providers.dart';
@@ -60,7 +61,7 @@ class AchievementsGrid extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context, ThemeData theme) {
-    return Container(
+    return SizedBox(
       height: 120,
       child: Center(
         child: Column(
@@ -69,19 +70,19 @@ class AchievementsGrid extends ConsumerWidget {
             Icon(
               Icons.emoji_events_outlined,
               size: 48,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 8),
             Text(
               'No achievements yet',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             Text(
               'Complete tasks to unlock achievements!',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -119,13 +120,13 @@ class AchievementsGrid extends ConsumerWidget {
       child: Container(
         decoration: BoxDecoration(
           color: achievement.isUnlocked
-              ? theme.colorScheme.primaryContainer.withOpacity(0.3)
-              : theme.colorScheme.surfaceVariant.withOpacity(0.3),
+              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: achievement.isUnlocked
-                ? theme.colorScheme.primary.withOpacity(0.3)
-                : theme.colorScheme.outline.withOpacity(0.2),
+                ? theme.colorScheme.primary.withValues(alpha: 0.3)
+                : theme.colorScheme.outline.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -139,14 +140,14 @@ class AchievementsGrid extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: achievement.isUnlocked
                     ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.3),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _getAchievementIcon(achievement.category),
                 color: achievement.isUnlocked
                     ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurface.withOpacity(0.5),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 size: 20,
               ),
             ),
@@ -158,7 +159,7 @@ class AchievementsGrid extends ConsumerWidget {
                 fontWeight: FontWeight.w500,
                 color: achievement.isUnlocked
                     ? theme.colorScheme.onSurface
-                    : theme.colorScheme.onSurface.withOpacity(0.5),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -242,20 +243,6 @@ class AchievementsGrid extends ConsumerWidget {
 
   void _showAllAchievements(BuildContext context, WidgetRef ref) {
     // Navigate to full achievements screen
-    // For now, just show a placeholder dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('All Achievements'),
-        content:
-            const Text('Full achievements screen would be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+    context.push('/achievements');
   }
 }

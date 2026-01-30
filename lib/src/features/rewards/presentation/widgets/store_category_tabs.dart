@@ -18,7 +18,7 @@ class StoreCategoryTabs extends StatelessWidget {
         color: theme.colorScheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outline.withOpacity(0.2),
+            color: theme.colorScheme.outline.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -26,7 +26,7 @@ class StoreCategoryTabs extends StatelessWidget {
       child: TabBar(
         controller: controller,
         labelColor: theme.colorScheme.primary,
-        unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.6),
+        unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
         indicatorColor: theme.colorScheme.primary,
         indicatorWeight: 3,
         tabs: const [

@@ -53,11 +53,15 @@ void main() async {
       debugPrint('Error enabling performance monitoring: $e');
     }
 
-    // Initialize Google Mobile Ads (with error handling)
-    try {
-      await MobileAds.instance.initialize();
-    } catch (e) {
-      debugPrint('Error initializing Google Mobile Ads: $e');
+    // Initialize Google Mobile Ads (with error handling and platform check)
+    if (!kIsWeb) {
+      try {
+        await MobileAds.instance.initialize();
+      } catch (e) {
+        debugPrint('Error initializing Google Mobile Ads: $e');
+      }
+    } else {
+      debugPrint('Skipping Google Mobile Ads initialization on web platform');
     }
 
     runApp(

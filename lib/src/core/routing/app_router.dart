@@ -6,11 +6,13 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/screens/profile_screen.dart';
 import '../../features/auth/presentation/screens/privacy_settings_screen.dart';
 import '../../features/auth/presentation/screens/language_settings_screen.dart';
+import '../../features/dashboard/presentation/screens/home_dashboard_screen.dart';
 import '../../features/tasks/presentation/pages/tasks_page.dart';
 import '../../features/tasks/presentation/screens/board_management_screen.dart';
 import '../../features/notifications/presentation/screens/notification_center_screen.dart';
 import '../../features/notifications/presentation/screens/notification_settings_screen.dart';
 import '../../features/gamification/presentation/screens/gamification_dashboard_screen.dart';
+import '../../features/gamification/presentation/screens/achievements_screen.dart';
 import '../../features/monetization/presentation/screens/subscription_screen.dart';
 import '../../features/monetization/presentation/screens/premium_features_screen.dart';
 import '../../features/rewards/presentation/screens/rewards_store_screen.dart';
@@ -42,6 +44,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LanguageSettingsScreen(),
       ),
 
+      // Dashboard route (main home screen)
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const HomeDashboardScreen(),
+      ),
+
       // Tasks routes
       GoRoute(
         path: '/tasks',
@@ -71,6 +79,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/dashboard',
         builder: (context, state) => const GamificationDashboardScreen(),
       ),
+      GoRoute(
+        path: '/achievements',
+        builder: (context, state) => const AchievementsScreen(),
+      ),
 
       // Monetization routes
       GoRoute(
@@ -95,7 +107,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Default redirect
       GoRoute(
         path: '/',
-        redirect: (context, state) => '/login',
+        redirect: (context, state) => '/home',
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

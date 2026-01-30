@@ -9,12 +9,11 @@ import '../../../monetization/domain/models/user_limitations.dart';
 import '../../../monetization/presentation/utils/premium_utils.dart';
 import '../../../monetization/presentation/widgets/limitation_banner.dart';
 import '../../../monetization/presentation/widgets/usage_indicator.dart';
-import '../../domain/models/board_type.dart';
-import '../../domain/models/create_board_request.dart';
 import '../../domain/models/models.dart';
 import '../providers/board_providers.dart';
 import '../providers/task_providers.dart';
 import '../widgets/add_task_dialog.dart';
+import '../widgets/create_board_dialog.dart';
 import '../widgets/inbox_widget.dart';
 import '../widgets/task_filter_bar.dart';
 import '../widgets/task_list_item.dart';
@@ -181,9 +180,9 @@ class _TasksPageState extends ConsumerState<TasksPage>
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => _createDefaultBoard(userId),
+            onPressed: () => _showCreateBoardDialog(userId),
             icon: const Icon(Icons.add),
-            label: const Text('Create Default Board'),
+            label: const Text('Criar Primeiro Quadro'),
           ),
         ],
       ),
@@ -424,22 +423,24 @@ class _TasksPageState extends ConsumerState<TasksPage>
     context.push('/tasks/detail/${task.id}', extra: task);
   }
 
-  Future<void> _createDefaultBoard(String userId) async {
+  void _showCreateBoardDialog(String userId) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => CreateBoardDialog(
+        onCreateBoard: (request) => _createBoard(request, userId),
+      ),
+    );
+  }
+
+  Future<void> _createBoard(CreateBoardRequest request, String userId) async {
     try {
       final boardService = ref.read(boardServiceProvider);
-      await boardService.createBoard(
-        CreateBoardRequest(
-          name: 'My Tasks',
-          description: 'Default board for personal tasks',
-          type: BoardType.private,
-          ownerId: userId,
-        ),
-      );
+      await boardService.createBoard(request);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Default board created successfully! 🎉'),
+            content: Text('Quadro criado com sucesso! 🎉'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -449,7 +450,30 @@ class _TasksPageState extends ConsumerState<TasksPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error creating default board: $e'),
+            content: Text('Erro ao criar quadro: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _createDefaultBoardSilently(String userId) async {
+    try {
+      final boardService = ref.read(boardServiceProvider);
+      await boardService.createBoard(
+        CreateBoardRequest(
+          name: 'Minhas Tarefas',
+          description: 'Quadro padrão para tarefas pessoais',
+          type: BoardType.private,
+          ownerId: userId,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao criar quadro padrão: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -478,7 +502,7 @@ class _TasksPageState extends ConsumerState<TasksPage>
         data: (boards) async {
           if (boards.isEmpty) {
             // Create default board first
-            await _createDefaultBoard(userId);
+            await _createDefaultBoardSilently(userId);
             // Refresh boards and wait a bit for the update
             ref.invalidate(userBoardsProvider);
             await Future.delayed(const Duration(milliseconds: 500));
@@ -644,7 +668,7 @@ class _TasksPageState extends ConsumerState<TasksPage>
       data: (boards) async {
         if (boards.isEmpty) {
           // Create default board first
-          await _createDefaultBoard(currentUser.id);
+          await _createDefaultBoardSilently(currentUser.id);
           // Refresh boards
           ref.invalidate(userBoardsProvider);
           await Future.delayed(const Duration(milliseconds: 500));

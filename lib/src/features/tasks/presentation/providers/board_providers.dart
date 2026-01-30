@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../monetization/presentation/providers/limited_service_providers.dart';
 import '../../data/services/firebase_board_activity_service.dart';
 import '../../data/services/firebase_board_invitation_service.dart';
 import '../../data/services/firebase_board_service.dart';
@@ -11,10 +12,9 @@ import '../../domain/services/board_activity_service.dart';
 import '../../domain/services/board_invitation_service.dart';
 import '../../domain/services/board_service.dart';
 
-/// Provider for the board service
+/// Provider for the board service - uses limited service that enforces usage limits
 final boardServiceProvider = Provider<BoardService>((ref) {
-  final authService = ref.watch(authServiceProvider);
-  return FirebaseBoardService(authService: authService);
+  return ref.read(limitedBoardServiceProvider);
 });
 
 /// Provider for the board invitation service

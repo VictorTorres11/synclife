@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../domain/services/services.dart';
 
@@ -37,6 +38,13 @@ class GoogleAdsService implements AdsService {
   Future<void> initialize() async {
     if (_initialized) return;
 
+    // Skip initialization on web platform
+    if (kIsWeb) {
+      debugPrint('Skipping Google Mobile Ads initialization on web platform');
+      _initialized = true;
+      return;
+    }
+
     try {
       await MobileAds.instance.initialize();
 
@@ -58,6 +66,12 @@ class GoogleAdsService implements AdsService {
   @override
   Future<void> loadBannerAd(String placementId) async {
     if (!_adsEnabled || !_initialized) return;
+    
+    // Skip on web platform
+    if (kIsWeb) {
+      debugPrint('Skipping banner ad load on web platform');
+      return;
+    }
 
     try {
       // Dispose existing ad if any
@@ -116,6 +130,12 @@ class GoogleAdsService implements AdsService {
   @override
   Future<void> loadInterstitialAd(String placementId) async {
     if (!_adsEnabled || !_initialized) return;
+    
+    // Skip on web platform
+    if (kIsWeb) {
+      debugPrint('Skipping interstitial ad load on web platform');
+      return;
+    }
 
     try {
       // Dispose existing ad if any
@@ -185,6 +205,12 @@ class GoogleAdsService implements AdsService {
   @override
   Future<void> loadRewardedAd(String placementId) async {
     if (!_adsEnabled || !_initialized) return;
+    
+    // Skip on web platform
+    if (kIsWeb) {
+      debugPrint('Skipping rewarded ad load on web platform');
+      return;
+    }
 
     try {
       // Dispose existing ad if any

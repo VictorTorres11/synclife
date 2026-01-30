@@ -34,7 +34,9 @@ class Board extends Equatable {
     type: BoardType.fromJson(map['type'] as String),
     ownerId: map['ownerId'] as String,
     memberIds: List<String>.from(map['memberIds'] as List),
-    settings: BoardSettings.fromMap(map['settings'] as Map<String, dynamic>),
+    settings: map['settings'] != null 
+        ? BoardSettings.fromMap(map['settings'] as Map<String, dynamic>)
+        : const BoardSettings(),
     createdAt: DateTime.parse(map['createdAt'] as String),
     updatedAt: DateTime.parse(map['updatedAt'] as String),
   );

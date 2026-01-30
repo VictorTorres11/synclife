@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 import '../../domain/models/models.dart';
 import '../providers/auth_providers.dart';
@@ -30,7 +31,7 @@ class ProfileHeader extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 40,
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     backgroundImage: user.photoURL != null
                         ? NetworkImage(user.photoURL!)
                         : null,
@@ -88,7 +89,7 @@ class ProfileHeader extends ConsumerWidget {
                   Text(
                     user.email,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
 
@@ -98,7 +99,7 @@ class ProfileHeader extends ConsumerWidget {
                   Text(
                     'Member since ${_formatDate(user.createdAt)}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -230,10 +231,47 @@ class ProfileHeader extends ConsumerWidget {
     );
   }
 
-  void _updateProfile(BuildContext context, WidgetRef ref, String displayName) {
-    // Implement profile update
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile update not implemented yet')),
-    );
+  void _updateProfile(BuildContext context, WidgetRef ref, String displayName) async {
+    try {
+      // Update Firebase Auth display name
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        await firebaseUser.updateDisplayName(displayName);
+        // Reload user to get updated info
+        await firebaseUser.reload();
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('Profile updated successfully!'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Failed to update profile: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 }

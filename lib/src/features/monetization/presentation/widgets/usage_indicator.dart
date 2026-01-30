@@ -4,7 +4,6 @@ import '../../domain/models/user_limitations.dart';
 import '../providers/monetization_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../utils/premium_utils.dart';
-import '../../../auth/presentation/providers/auth_providers.dart';
 
 /// Widget showing current usage vs limits with upgrade prompt
 class UsageIndicator extends ConsumerWidget {
@@ -82,9 +81,9 @@ class UsageIndicator extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.amber.withOpacity(0.1),
+        color: Colors.amber.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.amber.withOpacity(0.3)),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -151,15 +150,15 @@ class UsageIndicator extends ConsumerWidget {
         color: isAtLimit
             ? colorScheme.errorContainer
             : (isNearLimit
-                ? Colors.orange.withOpacity(0.1)
-                : colorScheme.surfaceVariant),
+                ? Colors.orange.withValues(alpha: 0.1)
+                : colorScheme.surfaceContainerHighest),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isAtLimit
-              ? colorScheme.error.withOpacity(0.3)
+              ? colorScheme.error.withValues(alpha: 0.3)
               : (isNearLimit
-                  ? Colors.orange.withOpacity(0.3)
-                  : colorScheme.outline.withOpacity(0.3)),
+                  ? Colors.orange.withValues(alpha: 0.3)
+                  : colorScheme.outline.withValues(alpha: 0.3)),
         ),
       ),
       child: Column(
@@ -192,7 +191,7 @@ class UsageIndicator extends ConsumerWidget {
             const SizedBox(height: 8),
             LinearProgressIndicator(
               value: percentage.clamp(0.0, 1.0),
-              backgroundColor: Colors.grey.withOpacity(0.3),
+              backgroundColor: Colors.grey.withValues(alpha: 0.3),
               valueColor: AlwaysStoppedAnimation<Color>(
                 isAtLimit
                     ? Colors.red

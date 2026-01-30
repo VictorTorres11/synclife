@@ -42,7 +42,7 @@ class StoreItemGrid extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Error loading items',
+              'Erro ao carregar itens',
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -64,21 +64,22 @@ class StoreItemGrid extends ConsumerWidget {
         children: [
           Icon(
             _getCategoryIcon(category),
-            size: 64,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            size: 80,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
-            'No ${category.name} items available',
+            'Nenhum item ${_getCategoryName(category)} disponível',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Check back later for new items!',
+            'Volte mais tarde para novos itens!',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -120,6 +121,17 @@ class StoreItemGrid extends ConsumerWidget {
     }
   }
 
+  String _getCategoryName(StoreItemCategory category) {
+    switch (category) {
+      case StoreItemCategory.functional:
+        return 'funcional';
+      case StoreItemCategory.visual:
+        return 'visual';
+      case StoreItemCategory.utility:
+        return 'utilitário';
+    }
+  }
+
   Future<void> _handlePurchase(
       BuildContext context, StoreItem item, WidgetRef ref) async {
     final authState = ref.read(authStateProvider);
@@ -129,18 +141,23 @@ class StoreItemGrid extends ConsumerWidget {
     // Check if user is authenticated
     final user = authState.value;
     if (user == null) {
-      _showErrorDialog(context, 'Please log in to make purchases');
+      if (context.mounted) {
+        _showErrorDialog(context, 'Faça login para fazer compras');
+      }
       return;
     }
 
     // Check if user has enough FluxoCoins
     final currentCoins = userStats.value?.fluxoCoins ?? 0;
     if (currentCoins < item.price) {
-      _showInsufficientFundsDialog(context, item.price, currentCoins);
+      if (context.mounted) {
+        _showInsufficientFundsDialog(context, item.price, currentCoins);
+      }
       return;
     }
 
     // Show purchase confirmation
+    if (!context.mounted) return;
     final confirmed = await _showPurchaseConfirmation(context, item);
     if (!confirmed) return;
 
@@ -148,12 +165,14 @@ class StoreItemGrid extends ConsumerWidget {
     await purchaseNotifier.purchaseItem(user.uid, item.id);
 
     // Check for errors
-    final purchaseState = ref.read(purchaseNotifierProvider);
-    if (purchaseState.error != null) {
-      _showErrorDialog(context, purchaseState.error!);
-      purchaseNotifier.clearError();
-    } else if (purchaseState.lastPurchase != null) {
-      _showPurchaseSuccessDialog(context, item);
+    if (context.mounted) {
+      final purchaseState = ref.read(purchaseNotifierProvider);
+      if (purchaseState.error != null) {
+        _showErrorDialog(context, purchaseState.error!);
+        purchaseNotifier.clearError();
+      } else if (purchaseState.lastPurchase != null) {
+        _showPurchaseSuccessDialog(context, item);
+      }
     }
   }
 
@@ -162,12 +181,12 @@ class StoreItemGrid extends ConsumerWidget {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Confirm Purchase'),
+            title: const Text('Confirmar Compra'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Are you sure you want to purchase:'),
+                const Text('Tem certeza que deseja comprar:'),
                 const SizedBox(height: 8),
                 Text(
                   item.name,
@@ -177,11 +196,14 @@ class StoreItemGrid extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(Icons.monetization_on, size: 16),
+                    const Icon(Icons.monetization_on, size: 16, color: Colors.green),
                     const SizedBox(width: 4),
                     Text(
                       '${item.price} FluxoCoins',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
                     ),
                   ],
                 ),
@@ -190,11 +212,11 @@ class StoreItemGrid extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: const Text('Cancelar'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Purchase'),
+                child: const Text('Comprar'),
               ),
             ],
           ),
@@ -207,7 +229,7 @@ class StoreItemGrid extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Insufficient FluxoCoins'),
+        title: const Text('FluxoCoins Insuficientes'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -218,9 +240,9 @@ class StoreItemGrid extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-                'You need ${itemPrice - currentCoins} more FluxoCoins to purchase this item.'),
+                'Você precisa de mais ${itemPrice - currentCoins} FluxoCoins para comprar este item.'),
             const SizedBox(height: 16),
-            const Text('Complete more tasks to earn FluxoCoins!'),
+            const Text('Complete mais tarefas para ganhar FluxoCoins!'),
           ],
         ),
         actions: [
@@ -237,7 +259,7 @@ class StoreItemGrid extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Purchase Successful!'),
+        title: const Text('Compra Realizada!'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -247,20 +269,20 @@ class StoreItemGrid extends ConsumerWidget {
               color: Colors.green,
             ),
             const SizedBox(height: 16),
-            Text('You have successfully purchased:'),
+            const Text('Você comprou com sucesso:'),
             const SizedBox(height: 8),
             Text(
               item.name,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            const Text('Check your inventory to use this item!'),
+            const Text('Verifique seu inventário para usar este item!'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Great!'),
+            child: const Text('Ótimo!'),
           ),
         ],
       ),
@@ -271,7 +293,7 @@ class StoreItemGrid extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Purchase Failed'),
+        title: const Text('Falha na Compra'),
         content: Text(error),
         actions: [
           TextButton(

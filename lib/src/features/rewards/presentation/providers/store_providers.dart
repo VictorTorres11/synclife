@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../data/services/firebase_store_service.dart';
+import '../../data/store_catalog.dart';
 import '../../domain/models/models.dart';
 import '../../domain/services/services.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -25,8 +26,9 @@ final storeItemsProvider = StreamProvider<List<StoreItem>>((ref) {
 /// Provider for store items by category
 final storeItemsByCategoryProvider =
     StreamProvider.family<List<StoreItem>, StoreItemCategory>((ref, category) {
-  final storeService = ref.watch(storeServiceProvider);
-  return storeService.getStoreItemsByCategory(category).asStream();
+  // Always return items from local catalog for now
+  // This ensures the store always has items to display
+  return Stream.value(StoreCatalog.getItemsByCategory(category));
 });
 
 /// Provider for current user's inventory

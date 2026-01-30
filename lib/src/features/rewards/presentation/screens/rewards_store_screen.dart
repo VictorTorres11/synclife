@@ -133,12 +133,12 @@ class _RewardsStoreScreenState extends ConsumerState<RewardsStoreScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.amber.withOpacity(0.1),
-            Colors.orange.withOpacity(0.1),
+            Colors.amber.withValues(alpha: 0.1),
+            Colors.orange.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.withOpacity(0.3)),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -174,7 +174,7 @@ class _RewardsStoreScreenState extends ConsumerState<RewardsStoreScreen>
             onPressed: () => _showPremiumStoreInfo(context),
             style: TextButton.styleFrom(
               foregroundColor: Colors.amber.shade700,
-              backgroundColor: Colors.amber.withOpacity(0.2),
+              backgroundColor: Colors.amber.withValues(alpha: 0.2),
             ),
             child: const Text('Learn More'),
           ),

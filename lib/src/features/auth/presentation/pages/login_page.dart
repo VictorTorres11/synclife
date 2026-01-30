@@ -33,8 +33,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       next.when(
         data: (user) {
           if (user != null) {
-            // User is authenticated, navigate to tasks
-            context.go('/tasks');
+            // User is authenticated, navigate to home dashboard
+            context.go('/home');
           }
         },
         loading: () {},

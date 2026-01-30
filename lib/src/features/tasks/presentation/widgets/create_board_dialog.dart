@@ -1,27 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/models/board.dart';
 import '../../domain/models/board_type.dart';
 import '../../domain/models/create_board_request.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 
-/// Dialog for creating a new board
-class CreateBoardDialog extends StatefulWidget {
+/// Dialog for creating or editing a board
+class CreateBoardDialog extends ConsumerStatefulWidget {
   const CreateBoardDialog({
     super.key,
     required this.onCreateBoard,
+    this.boardToEdit,
   });
 
   final Function(CreateBoardRequest) onCreateBoard;
+  final Board? boardToEdit;
 
   @override
-  State<CreateBoardDialog> createState() => _CreateBoardDialogState();
+  ConsumerState<CreateBoardDialog> createState() => _CreateBoardDialogState();
 }
 
-class _CreateBoardDialogState extends State<CreateBoardDialog> {
+class _CreateBoardDialogState extends ConsumerState<CreateBoardDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   BoardType _selectedType = BoardType.private;
   bool _isLoading = false;
+
+  bool get _isEditing => widget.boardToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      final board = widget.boardToEdit!;
+      _nameController.text = board.name;
+      _descriptionController.text = board.description ?? '';
+      _selectedType = board.type;
+    }
+  }
 
   @override
   void dispose() {
@@ -33,7 +51,7 @@ class _CreateBoardDialogState extends State<CreateBoardDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Create New Board'),
+      title: Text(_isEditing ? 'Editar Quadro' : 'Criar Novo Quadro'),
       content: Form(
         key: _formKey,
         child: Column(
@@ -43,16 +61,16 @@ class _CreateBoardDialogState extends State<CreateBoardDialog> {
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(
-                labelText: 'Board Name',
-                hintText: 'Enter board name',
+                labelText: 'Nome do Quadro',
+                hintText: 'Digite o nome do quadro',
                 border: OutlineInputBorder(),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Board name is required';
+                  return 'Nome do quadro é obrigatório';
                 }
                 if (value.trim().length < 2) {
-                  return 'Board name must be at least 2 characters';
+                  return 'Nome deve ter pelo menos 2 caracteres';
                 }
                 return null;
               },
@@ -62,8 +80,8 @@ class _CreateBoardDialogState extends State<CreateBoardDialog> {
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(
-                labelText: 'Description (Optional)',
-                hintText: 'Enter board description',
+                labelText: 'Descrição (Opcional)',
+                hintText: 'Digite a descrição do quadro',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
@@ -71,15 +89,15 @@ class _CreateBoardDialogState extends State<CreateBoardDialog> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Board Type',
+              'Tipo do Quadro',
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             Column(
               children: [
                 RadioListTile<BoardType>(
-                  title: const Text('Private'),
-                  subtitle: const Text('Only you can see and manage this board'),
+                  title: const Text('Privado'),
+                  subtitle: const Text('Apenas você pode ver e gerenciar este quadro'),
                   value: BoardType.private,
                   groupValue: _selectedType,
                   onChanged: (value) {
@@ -90,8 +108,8 @@ class _CreateBoardDialogState extends State<CreateBoardDialog> {
                   contentPadding: EdgeInsets.zero,
                 ),
                 RadioListTile<BoardType>(
-                  title: const Text('Shared'),
-                  subtitle: const Text('Invite others to collaborate on this board'),
+                  title: const Text('Compartilhado'),
+                  subtitle: const Text('Convide outros para colaborar neste quadro'),
                   value: BoardType.shared,
                   groupValue: _selectedType,
                   onChanged: (value) {
@@ -109,7 +127,7 @@ class _CreateBoardDialogState extends State<CreateBoardDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: const Text('Cancelar'),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _createBoard,
@@ -119,7 +137,7 @@ class _CreateBoardDialogState extends State<CreateBoardDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Create'),
+              : Text(_isEditing ? 'Salvar' : 'Criar'),
         ),
       ],
     );
@@ -135,13 +153,18 @@ class _CreateBoardDialogState extends State<CreateBoardDialog> {
     });
 
     try {
+      final currentUser = ref.read(currentUserProvider);
+      if (currentUser == null) {
+        throw Exception('Usuário não autenticado');
+      }
+      
       final request = CreateBoardRequest(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim().isEmpty 
             ? null 
             : _descriptionController.text.trim(),
         type: _selectedType,
-        ownerId: 'current_user_id', // This would come from auth service
+        ownerId: currentUser.uid,
       );
 
       await widget.onCreateBoard(request);
@@ -153,7 +176,9 @@ class _CreateBoardDialogState extends State<CreateBoardDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to create board: $e'),
+            content: Text(_isEditing 
+                ? 'Falha ao atualizar quadro: $e'
+                : 'Falha ao criar quadro: $e'),
             backgroundColor: Colors.red,
           ),
         );

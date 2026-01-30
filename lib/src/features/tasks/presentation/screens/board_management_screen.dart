@@ -5,7 +5,6 @@ import '../../../../core/layout/main_layout.dart';
 import '../../domain/models/board.dart';
 import '../../domain/models/board_type.dart';
 import '../../domain/models/create_board_request.dart';
-import '../../domain/services/board_service.dart';
 import '../providers/board_providers.dart';
 import '../widgets/board_management_card.dart';
 import '../widgets/create_board_dialog.dart';
@@ -293,6 +292,7 @@ class _BoardManagementScreenState extends ConsumerState<BoardManagementScreen>
     showDialog<void>(
       context: context,
       builder: (context) => CreateBoardDialog(
+        boardToEdit: board,
         onCreateBoard: (request) => _updateBoard(board.id, request),
       ),
     );
@@ -301,13 +301,25 @@ class _BoardManagementScreenState extends ConsumerState<BoardManagementScreen>
   Future<void> _updateBoard(String boardId, CreateBoardRequest request) async {
     try {
       final boardService = ref.read(boardServiceProvider);
-      await boardService.updateBoard(boardId, {
+      
+      // Criar o mapa de dados, filtrando valores null
+      final Map<String, dynamic> updateData = {
         'name': request.name,
-        'description': request.description,
         'type': request.type.toJson(),
-        'settings': request.settings?.toMap(),
         'updatedAt': DateTime.now().toIso8601String(),
-      });
+      };
+      
+      // Adicionar descrição apenas se não for null
+      if (request.description != null) {
+        updateData['description'] = request.description;
+      }
+      
+      // Adicionar settings apenas se não for null
+      if (request.settings != null) {
+        updateData['settings'] = request.settings!.toMap();
+      }
+      
+      await boardService.updateBoard(boardId, updateData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

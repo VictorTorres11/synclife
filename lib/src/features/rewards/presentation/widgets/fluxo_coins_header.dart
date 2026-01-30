@@ -19,7 +19,7 @@ class FluxoCoinsHeader extends ConsumerWidget {
         gradient: LinearGradient(
           colors: [
             theme.colorScheme.primary,
-            theme.colorScheme.primary.withOpacity(0.8),
+            theme.colorScheme.primary.withValues(alpha: 0.8),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -43,7 +43,7 @@ class FluxoCoinsHeader extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -59,7 +59,7 @@ class FluxoCoinsHeader extends ConsumerWidget {
             Text(
               'Your Balance',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
               ),
             ),
             Text(
@@ -91,7 +91,7 @@ class FluxoCoinsHeader extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -107,16 +107,16 @@ class FluxoCoinsHeader extends ConsumerWidget {
             Text(
               'Your Balance',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
               ),
             ),
             SizedBox(
               width: 120,
               height: 20,
               child: LinearProgressIndicator(
-                backgroundColor: Colors.white.withOpacity(0.3),
+                backgroundColor: Colors.white.withValues(alpha: 0.3),
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.colorScheme.onPrimary.withOpacity(0.5),
+                  theme.colorScheme.onPrimary.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -133,7 +133,7 @@ class FluxoCoinsHeader extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -149,13 +149,13 @@ class FluxoCoinsHeader extends ConsumerWidget {
             Text(
               'Balance Unavailable',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
               ),
             ),
             Text(
               'Error loading balance',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onPrimary.withOpacity(0.6),
+                color: theme.colorScheme.onPrimary.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -253,7 +253,7 @@ class _EarnMethodItem extends StatelessWidget {
                 Text(
                   description,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],

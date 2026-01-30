@@ -29,12 +29,12 @@ class StoreItemCard extends StatelessWidget {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: _getCategoryColor(item.category).withOpacity(0.1),
+                color: _getCategoryColor(item.category).withValues(alpha: 0.1),
               ),
               child: Center(
                 child: Icon(
                   _getItemIcon(item),
-                  size: 48,
+                  size: 32,
                   color: _getCategoryColor(item.category),
                 ),
               ),
@@ -66,7 +66,7 @@ class StoreItemCard extends StatelessWidget {
                     child: Text(
                       item.description,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -126,7 +126,7 @@ class StoreItemCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 4),
               decoration: BoxDecoration(
-                color: _getTypeColor(item.type).withOpacity(0.1),
+                color: _getTypeColor(item.type).withValues(alpha: 0.1),
               ),
               child: Center(
                 child: Text(

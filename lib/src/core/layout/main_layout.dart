@@ -296,13 +296,6 @@ class _AppDrawer extends ConsumerWidget {
                                     context, '/subscription');
                               },
                             ),
-                            _DrawerItem(
-                              icon: Icons.settings,
-                              title: 'Configurações',
-                              onTap: () {
-                                _navigateWithAnimation(context, '/settings');
-                              },
-                            ),
                           ],
                         ),
                       ],

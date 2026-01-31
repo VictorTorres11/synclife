@@ -44,7 +44,6 @@ class MockAdsService implements AdsService {
   @override
   void setAdsEnabled(bool enabled) {}
 
-  @override
   bool get isInitialized => true;
 }
 
@@ -54,7 +53,6 @@ final subscriptionServiceProvider =
 
 /// Provider for subscription service initialization
 final subscriptionInitializationProvider = FutureProvider<void>((ref) async {
-  final subscriptionService = ref.read(subscriptionServiceProvider);
   // Initialize subscription service if it has an initialize method
   // For now, the service is ready to use without explicit initialization
 });
@@ -101,7 +99,7 @@ final userLimitationsProvider = StreamProvider.family<UserLimitations, String>((
 final currentUserSubscriptionProvider = StreamProvider<Subscription?>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(null);
-  return ref.watch(userSubscriptionProvider(user.id).stream);
+  return ref.watch(userSubscriptionProvider(user.id).future).asStream();
 });
 
 /// Provider for current user limitations
@@ -110,7 +108,7 @@ final currentUserLimitationsProvider = StreamProvider<UserLimitations>((ref) {
   if (user == null) {
     return Stream.value(UserLimitations.forPlan('', SubscriptionPlan.free));
   }
-  return ref.watch(userLimitationsProvider(user.id).stream);
+  return ref.watch(userLimitationsProvider(user.id).future).asStream();
 });
 
 /// Provider for available subscription products

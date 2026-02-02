@@ -177,6 +177,11 @@ Este documento descreve todos os workflows disponíveis no projeto, incluindo Gi
 3. ✅ Execute build e baixe AAB
 4. ✅ Upload para Google Play Console
 
+**⚠️ Problema Comum Resolvido:**
+- **Erro**: "Keystore file not found for signing config 'release'"
+- **Solução**: Workflow atualizado gera keystore automaticamente
+- **Verificação**: Logs mostram criação do keystore
+
 **Para automação completa:**
 1. ✅ Use GitHub Actions para CI/CD geral
 2. ✅ Use Codemagic para releases AAB

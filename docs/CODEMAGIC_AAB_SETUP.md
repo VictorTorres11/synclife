@@ -107,21 +107,34 @@ base64 -i seu-keystore.jks
 
 ### Build Falha - Keystore
 
-**Erro**: "keystore not found"
-- ✅ Use keystore automático (não configure variáveis)
-- ✅ Ou verifique KEYSTORE_BASE64
-
-### Build Falha - Dependências
+**Erro**: "Keystore file not found for signing config 'release'"
+- ✅ **Solução**: O workflow agora gera keystore automaticamente
+- ✅ **Verificação**: Logs mostram se keystore foi criado
+- ✅ **Fallback**: Usa credenciais padrão se variáveis não configuradas
 
 **Erro**: "build_runner failed"
 - ✅ Verifique se todas as dependências estão no pubspec.yaml
 - ✅ Commit e push todas as mudanças
+- ✅ Execute `dart run build_runner build --delete-conflicting-outputs` localmente
 
 ### AAB Não Gerado
 
 **Erro**: "AAB not found"
 - ✅ Verifique logs do build
 - ✅ Confirme que não há erros de compilação
+- ✅ Verifique se keystore foi criado corretamente
+
+### Keystore Issues
+
+**Para usar keystore automático (recomendado):**
+- ✅ NÃO configure variáveis no Codemagic
+- ✅ O workflow gera automaticamente
+- ✅ Credenciais padrão: synclife123
+
+**Para usar keystore personalizado:**
+- ✅ Configure KEYSTORE_BASE64 no Codemagic
+- ✅ Configure KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS
+- ✅ Teste localmente primeiro
 
 ## 📊 Comparação: Codemagic vs GitHub Actions
 

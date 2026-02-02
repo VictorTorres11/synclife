@@ -97,7 +97,7 @@ workflows:
               -keyalg RSA \
               -keysize 2048 \
               -validity 10000 \
-              -alias synclife-key \
+              -alias ${KEY_ALIAS:-synclife-key} \
               -storepass ${KEYSTORE_PASSWORD:-synclife123} \
               -keypass ${KEY_PASSWORD:-synclife123} \
               -dname "CN=SyncLife, OU=Development, O=SyncLife, L=City, S=State, C=BR"
@@ -110,6 +110,24 @@ workflows:
           keyAlias=${KEY_ALIAS:-synclife-key}
           storeFile=keystore/synclife-release-key.jks
           EOF
+      - name: Verify keystore exists
+        script: |
+          if [ -f "android/keystore/synclife-release-key.jks" ]; then
+            echo "✅ Keystore found at android/keystore/synclife-release-key.jks"
+            ls -la android/keystore/
+          else
+            echo "❌ Keystore not found!"
+            exit 1
+          fi
+      - name: Verify key.properties exists
+        script: |
+          if [ -f "android/key.properties" ]; then
+            echo "✅ key.properties found"
+            cat android/key.properties
+          else
+            echo "❌ key.properties not found!"
+            exit 1
+          fi
       - name: Clean previous builds
         script: |
           flutter clean

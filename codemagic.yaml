@@ -68,6 +68,59 @@ workflows:
           success: true
           failure: true
 
+  android-aab-simple:
+    name: Android AAB Simple (Google Play)
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      flutter: 3.38.7
+      java: 17
+      groups:
+        - firebase_config
+    scripts:
+      - name: Set up local.properties
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Setup keystore
+        script: |
+          chmod +x scripts/setup_keystore_for_codemagic.sh
+          ./scripts/setup_keystore_for_codemagic.sh
+      - name: Clean previous builds
+        script: |
+          flutter clean
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Generate code with build_runner
+        script: |
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Build Android App Bundle (AAB)
+        script: |
+          echo "Building AAB with proper keystore signing"
+          flutter build appbundle --release --verbose
+      - name: Verify AAB was created
+        script: |
+          ls -la build/app/outputs/bundle/release/
+          if [ -f "build/app/outputs/bundle/release/app-release.aab" ]; then
+            echo "✅ AAB created successfully"
+            file build/app/outputs/bundle/release/app-release.aab
+            echo "✅ AAB is ready for Google Play Console upload"
+          else
+            echo "❌ AAB not found"
+            exit 1
+          fi
+    artifacts:
+      - build/**/outputs/bundle/**/*.aab
+      - build/**/outputs/**/mapping.txt
+      - android/keystore/*.jks
+    publishing:
+      email:
+        recipients:
+          - victor@synclife.app
+        notify:
+          success: true
+          failure: true
+
   android-aab-release:
     name: Android AAB Release (Google Play)
     max_build_duration: 60

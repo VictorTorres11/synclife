@@ -36,29 +36,31 @@ Se você **NÃO** configurar as variáveis, o workflow:
 - ✅ Usa credenciais padrão seguras
 - ✅ Funciona imediatamente sem configuração
 
-## 🔧 Executando o Build
+## 🚀 Workflows Disponíveis
 
-### Opção 1: Build Manual no Codemagic
+### **1. Android AAB Simple (Recomendado para começar) ⭐**
+- ✅ **Zero configuração** - funciona imediatamente
+- ✅ **Keystore automático** - gerado via script
+- ✅ **Build rápido** - ~5-10 minutos
+- ✅ **Pronto para Google Play** - AAB assinado
 
+### 2. Android AAB Release (Avançado)
+- ✅ Keystore personalizado via variáveis
+- ✅ Configuração manual de credenciais
+- ✅ Controle total sobre assinatura
+
+### Como Usar
+
+**Opção 1: Workflow Simple (Recomendado)**
 1. Acesse Codemagic Dashboard
-2. Selecione seu projeto
-3. Escolha o workflow `Android AAB Release (Google Play)`
-4. Clique em "Start new build"
-5. Aguarde o build completar
+2. Selecione "Android AAB Simple (Google Play)"
+3. Execute o build
+4. Baixe AAB dos artifacts
 
-### Opção 2: Build Automático
-
-Configure triggers no `codemagic.yaml` para builds automáticos:
-
-```yaml
-android-aab-release:
-  triggering:
-    events:
-      - push
-    branch_patterns:
-      - pattern: 'main'
-        include: true
-```
+**Opção 2: Workflow Release (Avançado)**
+1. Configure variáveis no grupo `keystore_credentials`
+2. Execute "Android AAB Release (Google Play)"
+3. Baixe AAB dos artifacts
 
 ## 📦 Artifacts Gerados
 

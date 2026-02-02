@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/task_comment.dart';
 import '../../domain/models/create_comment_request.dart';
-import '../providers/comment_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
 class TaskCommentsSection extends ConsumerStatefulWidget {
@@ -23,6 +22,7 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
   final _scrollController = ScrollController();
   bool _isExpanded = false;
   bool _isSubmitting = false;
+  List<TaskComment> _comments = [];
 
   @override
   void dispose() {
@@ -33,7 +33,6 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
 
   @override
   Widget build(BuildContext context) {
-    final commentsAsync = ref.watch(taskCommentsProvider(widget.taskId));
     final currentUser = ref.watch(currentUserProvider);
     final theme = Theme.of(context);
 
@@ -65,24 +64,20 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  commentsAsync.when(
-                    data: (comments) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${comments.length}',
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_comments.length}',
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
                   ),
                   const Spacer(),
                   Icon(
@@ -99,89 +94,58 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
             const Divider(height: 1),
             
             // Comments list
-            commentsAsync.when(
-              data: (comments) {
-                if (comments.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 48,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Nenhum comentário ainda',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Seja o primeiro a comentar nesta tarefa!',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return Container(
-                  constraints: const BoxConstraints(maxHeight: 300),
-                  child: Scrollbar(
-                    controller: _scrollController,
-                    child: ListView.separated(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: comments.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final comment = comments[index];
-                        final isOwnComment = currentUser?.id == comment.authorId;
-                        
-                        return _CommentBubble(
-                          comment: comment,
-                          isOwnComment: isOwnComment,
-                          onEdit: isOwnComment ? (newContent) => _editComment(comment.id, newContent) : null,
-                          onDelete: isOwnComment ? () => _deleteComment(comment.id) : null,
-                        );
-                      },
-                    ),
-                  ),
-                );
-              },
-              loading: () => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (error, _) => Padding(
+            if (_comments.isEmpty)
+              Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
                     Icon(
-                      Icons.error_outline,
+                      Icons.chat_bubble_outline,
                       size: 48,
-                      color: theme.colorScheme.error,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Erro ao carregar comentários',
-                      style: TextStyle(color: theme.colorScheme.error),
+                      'Nenhum comentário ainda',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => ref.refresh(taskCommentsProvider(widget.taskId)),
-                      child: const Text('Tentar novamente'),
+                    Text(
+                      'Seja o primeiro a comentar nesta tarefa!',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
+              )
+            else
+              Container(
+                constraints: const BoxConstraints(maxHeight: 300),
+                child: Scrollbar(
+                  controller: _scrollController,
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _comments.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final comment = _comments[index];
+                      final isOwnComment = currentUser?.uid == comment.authorId;
+                      
+                      return _CommentBubble(
+                        comment: comment,
+                        isOwnComment: isOwnComment,
+                        onEdit: isOwnComment ? (newContent) => _editComment(comment.id, newContent) : null,
+                        onDelete: isOwnComment ? () => _deleteComment(comment.id) : null,
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
 
             // Comment input
             if (currentUser != null) ...[
@@ -197,7 +161,7 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                       child: Text(
                         currentUser.displayName?.isNotEmpty == true
                             ? currentUser.displayName![0].toUpperCase()
-                            : currentUser.email[0].toUpperCase(),
+                            : currentUser.email![0].toUpperCase(),
                         style: TextStyle(
                           color: theme.colorScheme.onPrimary,
                           fontSize: 14,
@@ -262,13 +226,19 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
     });
 
     try {
-      final request = CreateCommentRequest(
+      // TODO: Implementar criação de comentário
+      final newComment = TaskComment(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
         taskId: widget.taskId,
         content: content,
-        authorId: currentUser.id,
+        authorId: currentUser.uid,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
-      await ref.read(commentServiceProvider).createComment(request);
+      setState(() {
+        _comments.add(newComment);
+      });
       
       _commentController.clear();
       
@@ -282,9 +252,6 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
           );
         }
       });
-      
-      // Refresh comments
-      ref.refresh(taskCommentsProvider(widget.taskId));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -305,8 +272,16 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
 
   Future<void> _editComment(String commentId, String newContent) async {
     try {
-      await ref.read(commentServiceProvider).updateComment(commentId, newContent);
-      ref.refresh(taskCommentsProvider(widget.taskId));
+      // TODO: Implementar edição de comentário
+      setState(() {
+        final index = _comments.indexWhere((c) => c.id == commentId);
+        if (index != -1) {
+          _comments[index] = _comments[index].copyWith(
+            content: newContent,
+            updatedAt: DateTime.now(),
+          );
+        }
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -321,8 +296,10 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
 
   Future<void> _deleteComment(String commentId) async {
     try {
-      await ref.read(commentServiceProvider).deleteComment(commentId);
-      ref.refresh(taskCommentsProvider(widget.taskId));
+      // TODO: Implementar exclusão de comentário
+      setState(() {
+        _comments.removeWhere((c) => c.id == commentId);
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

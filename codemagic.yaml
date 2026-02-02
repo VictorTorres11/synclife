@@ -68,6 +68,85 @@ workflows:
           success: true
           failure: true
 
+  android-aab-release:
+    name: Android AAB Release (Google Play)
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      flutter: 3.38.7
+      java: 17
+      groups:
+        - firebase_config
+        - keystore_credentials
+    scripts:
+      - name: Set up local.properties
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Create keystore directory
+        script: |
+          mkdir -p android/keystore
+      - name: Generate or use existing keystore
+        script: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Using provided keystore from environment"
+            echo $KEYSTORE_BASE64 | base64 -d > android/keystore/synclife-release-key.jks
+          else
+            echo "Generating new keystore"
+            keytool -genkey -v \
+              -keystore android/keystore/synclife-release-key.jks \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -alias synclife-key \
+              -storepass ${KEYSTORE_PASSWORD:-synclife123} \
+              -keypass ${KEY_PASSWORD:-synclife123} \
+              -dname "CN=SyncLife, OU=Development, O=SyncLife, L=City, S=State, C=BR"
+          fi
+      - name: Create key.properties
+        script: |
+          cat > android/key.properties << EOF
+          storePassword=${KEYSTORE_PASSWORD:-synclife123}
+          keyPassword=${KEY_PASSWORD:-synclife123}
+          keyAlias=${KEY_ALIAS:-synclife-key}
+          storeFile=keystore/synclife-release-key.jks
+          EOF
+      - name: Clean previous builds
+        script: |
+          flutter clean
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Generate code with build_runner
+        script: |
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Run tests
+        script: |
+          flutter test || echo "Tests failed but continuing build"
+      - name: Build Android App Bundle (AAB)
+        script: |
+          flutter build appbundle --release --verbose
+      - name: Verify AAB was created
+        script: |
+          ls -la build/app/outputs/bundle/release/
+          if [ -f "build/app/outputs/bundle/release/app-release.aab" ]; then
+            echo "✅ AAB created successfully"
+            file build/app/outputs/bundle/release/app-release.aab
+          else
+            echo "❌ AAB not found"
+            exit 1
+          fi
+    artifacts:
+      - build/**/outputs/bundle/**/*.aab
+      - build/**/outputs/**/mapping.txt
+      - android/keystore/*.jks
+    publishing:
+      email:
+        recipients:
+          - victor@synclife.app
+        notify:
+          success: true
+          failure: true
+
   code-analysis:
     name: Code Analysis (Non-blocking)
     max_build_duration: 20

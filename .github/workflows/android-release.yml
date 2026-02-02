@@ -1,0 +1,177 @@
+name: Android Release AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      version_code:
+        description: 'Version code (e.g., 1)'
+        required: true
+        default: '1'
+      release_notes:
+        description: 'Release notes'
+        required: false
+        default: 'Bug fixes and improvements'
+
+jobs:
+  build-android-aab:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+    
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+    
+    - name: Get dependencies
+      run: flutter pub get
+    
+    - name: Generate code
+      run: flutter packages pub run build_runner build --delete-conflicting-outputs
+    
+    - name: Run tests
+      run: flutter test
+    
+    - name: Analyze code
+      run: flutter analyze
+    
+    - name: Create keystore directory
+      run: mkdir -p android/keystore
+    
+    - name: Generate or use existing keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      run: |
+        if [ -n "$KEYSTORE_BASE64" ]; then
+          echo "Using provided keystore from secrets"
+          echo $KEYSTORE_BASE64 | base64 -d > android/keystore/synclife-release-key.jks
+        else
+          echo "Generating new keystore automatically"
+          keytool -genkey -v \
+            -keystore android/keystore/synclife-release-key.jks \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -alias ${KEY_ALIAS:-synclife-key} \
+            -storepass ${KEYSTORE_PASSWORD:-synclife123} \
+            -keypass ${KEY_PASSWORD:-synclife123} \
+            -dname "CN=SyncLife, OU=Development, O=SyncLife, L=City, S=State, C=BR"
+        fi
+    
+    - name: Create key.properties
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      run: |
+        cat > android/key.properties << EOF
+        storePassword=${KEYSTORE_PASSWORD:-synclife123}
+        keyPassword=${KEY_PASSWORD:-synclife123}
+        keyAlias=${KEY_ALIAS:-synclife-key}
+        storeFile=keystore/synclife-release-key.jks
+        EOF
+    
+    - name: Update version in pubspec.yaml
+      run: |
+        sed -i "s/^version: .*/version: ${{ github.event.inputs.version_name }}+${{ github.event.inputs.version_code }}/" pubspec.yaml
+    
+    - name: Build Android App Bundle (AAB)
+      run: |
+        echo "Building signed AAB..."
+        flutter build appbundle --release
+    
+    - name: Upload generated keystore (if created)
+      if: success()
+      uses: actions/upload-artifact@v3
+      with:
+        name: generated-keystore-v${{ github.event.inputs.version_name }}
+        path: android/keystore/synclife-release-key.jks
+        retention-days: 90
+    
+    - name: Get AAB path
+      id: aab_path
+      run: |
+        AAB_PATH=$(find build/app/outputs/bundle -name "*.aab" | head -1)
+        echo "aab_path=$AAB_PATH" >> $GITHUB_OUTPUT
+        echo "Found AAB at: $AAB_PATH"
+    
+    - name: Upload AAB artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-release-aab-v${{ github.event.inputs.version_name }}
+        path: ${{ steps.aab_path.outputs.aab_path }}
+        retention-days: 30
+    
+    - name: Create Release
+      if: success()
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: android-v${{ github.event.inputs.version_name }}
+        release_name: Android Release v${{ github.event.inputs.version_name }}
+        body: |
+          ## Android Release v${{ github.event.inputs.version_name }}
+          
+          **Version Code:** ${{ github.event.inputs.version_code }}
+          
+          **Release Notes:**
+          ${{ github.event.inputs.release_notes }}
+          
+          **Build Information:**
+          - Flutter Version: 3.24.0
+          - Build Type: Release AAB
+          - Target SDK: Latest
+          
+          **Installation:**
+          1. Download the AAB file from the artifacts
+          2. Upload to Google Play Console for testing or release
+          
+          **Testing:**
+          - Upload to Google Play Console Internal Testing track
+          - Share testing link with team members
+        draft: false
+        prerelease: false
+    
+    - name: Upload AAB to Release
+      if: success()
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.aab_path.outputs.aab_path }}
+        asset_name: synclife-app-v${{ github.event.inputs.version_name }}.aab
+        asset_content_type: application/octet-stream
+    
+    - name: Build summary
+      if: always()
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version:** ${{ github.event.inputs.version_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version Code:** ${{ github.event.inputs.version_code }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **AAB Location:** ${{ steps.aab_path.outputs.aab_path }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Download the AAB from artifacts or release" >> $GITHUB_STEP_SUMMARY
+        echo "2. Upload to Google Play Console" >> $GITHUB_STEP_SUMMARY
+        echo "3. Create internal testing release" >> $GITHUB_STEP_SUMMARY
+        echo "4. Test the app thoroughly" >> $GITHUB_STEP_SUMMARY

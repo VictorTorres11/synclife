@@ -6,6 +6,7 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/screens/profile_screen.dart';
 import '../../features/auth/presentation/screens/privacy_settings_screen.dart';
 import '../../features/auth/presentation/screens/language_settings_screen.dart';
+import '../../features/auth/presentation/screens/user_profile_setup_screen.dart';
 import '../../features/dashboard/presentation/screens/home_dashboard_screen.dart';
 import '../../features/tasks/presentation/pages/tasks_page.dart';
 import '../../features/tasks/presentation/screens/board_management_screen.dart';
@@ -27,6 +28,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/profile-setup',
+        builder: (context, state) => const UserProfileSetupScreen(),
       ),
       GoRoute(
         path: '/profile',

@@ -1,24 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/activity/providers/activity_providers.dart';
-import '../../../../core/activity/models/activity_log.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
-class RecentActivityWidget extends ConsumerWidget {
-  const RecentActivityWidget({super.key});
+class RecentActivityWidgetSimple extends ConsumerWidget {
+  const RecentActivityWidgetSimple({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final user = ref.watch(currentUserProvider);
     
-    if (user == null) {
-      return _buildEmptyState(context);
-    }
-
-    final activitiesAsync = ref.watch(recentActivitiesProvider(user.id));
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -47,85 +39,10 @@ class RecentActivityWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           
-          activitiesAsync.when(
-            data: (activities) {
-              // If no activities exist, show sample activities to demonstrate the feature
-              if (activities.isEmpty) {
-                return _buildSampleActivities(context);
-              }
-              
-              return Column(
-                children: activities.map((activity) => _buildActivityItem(
-                  context: context,
-                  activity: activity,
-                )).toList(),
-              );
-            },
-            loading: () => _buildLoadingState(context),
-            error: (error, stackTrace) {
-              // On error (like permission issues), show sample activities
-              print('Error loading activities: $error');
-              return _buildSampleActivities(context);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityItem({
-    required BuildContext context,
-    required ActivityLog activity,
-  }) {
-    final theme = Theme.of(context);
-    
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: activity.color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              activity.icon,
-              color: activity.color,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  activity.title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  activity.description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          Text(
-            activity.timeAgo,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
+          if (user == null)
+            _buildEmptyState(context)
+          else
+            _buildSampleActivities(context),
         ],
       ),
     );
@@ -184,7 +101,7 @@ class RecentActivityWidget extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Opacity(
-        opacity: 0.6, // Make sample activities slightly transparent
+        opacity: 0.7, // Make sample activities slightly transparent
         child: Row(
           children: [
             Container(
@@ -232,32 +149,6 @@ class RecentActivityWidget extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Carregando atividades...',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -317,6 +208,13 @@ class RecentActivityWidget extends ConsumerWidget {
         subtitle: 'Primeira tarefa!',
         time: '3h atrás',
         color: Colors.amber,
+      ),
+      SampleActivity(
+        icon: Icons.add_circle,
+        title: 'Nova tarefa criada',
+        subtitle: 'Preparar apresentação',
+        time: '5h atrás',
+        color: Colors.indigo,
       ),
     ];
   }

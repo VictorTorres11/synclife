@@ -18,12 +18,14 @@ class MainLayout extends ConsumerWidget {
     required this.child,
     this.title,
     this.showDrawer = true,
+    this.showBackButton = false,
     this.actions,
   });
 
   final Widget child;
   final String? title;
   final bool showDrawer;
+  final bool showBackButton;
   final List<Widget>? actions;
 
   @override
@@ -31,7 +33,14 @@ class MainLayout extends ConsumerWidget {
         child: Scaffold(
           appBar: AppBar(
             title: title != null ? Text(title!) : null,
-            leading: showDrawer ? const _DrawerMenuButton() : null,
+            leading: showBackButton 
+                ? IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.arrow_back),
+                  )
+                : showDrawer 
+                    ? const _DrawerMenuButton() 
+                    : null,
             actions: [
               if (actions != null) ...actions!,
               const _StatusIndicators(),

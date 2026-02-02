@@ -32,4 +32,7 @@ abstract class AuthService {
 
   /// Create user profile after registration
   Future<UserProfile> createUserProfile(String userId, {String? language});
+
+  /// Update user profile information
+  Future<void> updateUserProfile({String? displayName, String? photoURL});
 }

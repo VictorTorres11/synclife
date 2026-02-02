@@ -174,4 +174,20 @@ class FirebaseAuthService implements AuthService {
   Future<User?> getCurrentUser() async {
     return currentUser;
   }
+
+  @override
+  Future<void> updateUserProfile({String? displayName, String? photoURL}) async {
+    try {
+      final user = _firebaseAuth.currentUser;
+      if (user != null) {
+        await user.updateDisplayName(displayName);
+        if (photoURL != null) {
+          await user.updatePhotoURL(photoURL);
+        }
+        await user.reload();
+      }
+    } catch (e) {
+      throw Exception('Failed to update user profile: ${e.toString()}');
+    }
+  }
 }

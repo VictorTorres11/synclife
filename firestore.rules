@@ -197,5 +197,13 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if false; // Only admins should write products
     }
+    
+    // Activities - users can only access their own activities
+    match /activities/{activityId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
   }
 }

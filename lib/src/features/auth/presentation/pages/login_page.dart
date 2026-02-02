@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/activity/providers/activity_providers.dart';
 import '../../domain/models/user.dart';
 import '../providers/auth_providers.dart';
 
@@ -227,6 +228,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (user != null) {
         // Create user profile with automatic region/timezone detection
         await authService.createUserProfile(user.id);
+        
+        // Log login activity
+        final activityLogger = ref.read(activityLoggerProvider);
+        await activityLogger.logLogin(user.id);
       }
     } catch (e) {
       _showErrorMessage('Google sign-in failed: ${e.toString()}');
@@ -244,6 +249,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (user != null) {
         // Create user profile with automatic region/timezone detection
         await authService.createUserProfile(user.id);
+        
+        // Log login activity
+        final activityLogger = ref.read(activityLoggerProvider);
+        await activityLogger.logLogin(user.id);
       }
     } catch (e) {
       _showErrorMessage('Apple sign-in failed: ${e.toString()}');
@@ -264,12 +273,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       User? user;
       if (_isLogin) {
         user = await authService.signInWithEmail(email, password);
+        
+        if (user != null) {
+          // Log login activity
+          final activityLogger = ref.read(activityLoggerProvider);
+          await activityLogger.logLogin(user.id);
+        }
       } else {
         user = await authService.signUpWithEmail(email, password);
         
         if (user != null) {
           // Create user profile for new users
           await authService.createUserProfile(user.id);
+          
+          // Log login activity for new users too
+          final activityLogger = ref.read(activityLoggerProvider);
+          await activityLogger.logLogin(user.id);
         }
       }
 

@@ -6,7 +6,7 @@ import '../../../../core/layout/main_layout.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/quick_stats_widget.dart';
-import '../widgets/recent_activity_widget.dart';
+import '../widgets/recent_activity_widget_simple.dart';
 
 class HomeDashboardScreen extends ConsumerWidget {
   const HomeDashboardScreen({super.key});
@@ -26,8 +26,13 @@ class HomeDashboardScreen extends ConsumerWidget {
       );
     }
 
+    // Get user's display name or fallback to email
+    final userName = user.displayName?.isNotEmpty == true 
+        ? user.displayName!.split(' ').first // Use first name only
+        : user.email.split('@').first;
+
     return MainLayout(
-      title: 'Bem-vindo ao SyncLife',
+      title: 'SyncLife',
       actions: [
         IconButton(
           onPressed: () => context.push('/notifications'),
@@ -64,7 +69,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Olá, ${user.displayName ?? user.email}! 👋',
+                    'Olá, $userName! 👋',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       color: colorScheme.onPrimary,
                       fontWeight: FontWeight.bold,
@@ -104,32 +109,32 @@ class HomeDashboardScreen extends ConsumerWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 1.1,
+              childAspectRatio: 1.0,
               children: [
                 DashboardCard(
-                  title: 'Minhas Tarefas',
-                  subtitle: 'Gerencie suas atividades',
+                  title: 'Tarefas',
+                  subtitle: 'Gerencie atividades',
                   icon: Icons.task_alt,
                   color: Colors.blue,
                   onTap: () => context.push('/tasks'),
                 ),
                 DashboardCard(
                   title: 'Quadros',
-                  subtitle: 'Organize seus projetos',
+                  subtitle: 'Organize projetos',
                   icon: Icons.dashboard,
                   color: Colors.green,
                   onTap: () => context.push('/boards'),
                 ),
                 DashboardCard(
-                  title: 'Gamificação',
-                  subtitle: 'Conquistas e progresso',
+                  title: 'Conquistas',
+                  subtitle: 'Progresso e metas',
                   icon: Icons.emoji_events,
                   color: Colors.orange,
                   onTap: () => context.push('/gamification'),
                 ),
                 DashboardCard(
-                  title: 'Loja FluxoCoins',
-                  subtitle: 'Troque por recompensas',
+                  title: 'Loja',
+                  subtitle: 'Troque FluxoCoins',
                   icon: Icons.store,
                   color: Colors.purple,
                   onTap: () => context.push('/rewards'),
@@ -147,7 +152,7 @@ class HomeDashboardScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const RecentActivityWidget(),
+            const RecentActivityWidgetSimple(),
 
             const SizedBox(height: 24),
 

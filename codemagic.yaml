@@ -1,4 +1,85 @@
 workflows:
+  android-aab-minimal:
+    name: Android AAB Minimal (Google Play)
+    max_build_duration: 90
+    instance_type: mac_mini_m1
+    environment:
+      flutter: 3.38.7
+      java: 17
+      groups:
+        - firebase_config
+    cache:
+      cache_paths:
+        - ~/.gradle/caches
+        - ~/.gradle/wrapper
+        - ~/.pub-cache
+    scripts:
+      - name: Set up local.properties
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Setup keystore and signing
+        script: |
+          # Create keystore directory
+          mkdir -p android/keystore
+          
+          # Generate keystore
+          echo "Generating keystore..."
+          keytool -genkey -v \
+            -keystore android/keystore/synclife-release-key.jks \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -alias synclife-key \
+            -storepass synclife123 \
+            -keypass synclife123 \
+            -dname "CN=SyncLife, OU=Development, O=SyncLife, L=City, S=State, C=BR"
+          
+          # Create key.properties
+          cat > android/key.properties << EOF
+          storePassword=synclife123
+          keyPassword=synclife123
+          keyAlias=synclife-key
+          storeFile=keystore/synclife-release-key.jks
+          EOF
+          
+          # Verify setup
+          echo "✅ Keystore setup complete"
+          ls -la android/keystore/
+          cat android/key.properties
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Generate code with build_runner
+        script: |
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Build Android App Bundle (AAB)
+        script: |
+          echo "Building AAB for Google Play Console..."
+          flutter build appbundle --release --verbose --no-tree-shake-icons
+      - name: Verify AAB was created
+        script: |
+          if [ -f "build/app/outputs/bundle/release/app-release.aab" ]; then
+            echo "✅ AAB created successfully!"
+            ls -la build/app/outputs/bundle/release/
+            file build/app/outputs/bundle/release/app-release.aab
+            echo "✅ Ready for Google Play Console upload"
+          else
+            echo "❌ AAB not found"
+            ls -la build/app/outputs/bundle/
+            exit 1
+          fi
+    artifacts:
+      - build/**/outputs/bundle/**/*.aab
+      - build/**/outputs/**/mapping.txt
+      - android/keystore/*.jks
+    publishing:
+      email:
+        recipients:
+          - victor@synclife.app
+        notify:
+          success: true
+          failure: true
+
   android-debug:
     name: Android Debug APK
     max_build_duration: 30
@@ -70,21 +151,56 @@ workflows:
 
   android-aab-simple:
     name: Android AAB Simple (Google Play)
-    max_build_duration: 60
+    max_build_duration: 90
     instance_type: mac_mini_m1
     environment:
       flutter: 3.38.7
       java: 17
       groups:
         - firebase_config
+    cache:
+      cache_paths:
+        - ~/.gradle/caches
+        - ~/.gradle/wrapper
+        - ~/.pub-cache
     scripts:
       - name: Set up local.properties
         script: |
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
-      - name: Setup keystore
+      - name: Setup keystore directory
         script: |
-          chmod +x scripts/setup_keystore_for_codemagic.sh
-          ./scripts/setup_keystore_for_codemagic.sh
+          mkdir -p android/keystore
+          echo "Keystore directory created"
+      - name: Generate keystore directly
+        script: |
+          echo "Generating keystore with keytool..."
+          keytool -genkey -v \
+            -keystore android/keystore/synclife-release-key.jks \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -alias synclife-key \
+            -storepass synclife123 \
+            -keypass synclife123 \
+            -dname "CN=SyncLife, OU=Development, O=SyncLife, L=City, S=State, C=BR"
+          
+          if [ -f "android/keystore/synclife-release-key.jks" ]; then
+            echo "✅ Keystore generated successfully"
+            ls -la android/keystore/
+          else
+            echo "❌ Keystore generation failed"
+            exit 1
+          fi
+      - name: Create key.properties
+        script: |
+          cat > android/key.properties << EOF
+          storePassword=synclife123
+          keyPassword=synclife123
+          keyAlias=synclife-key
+          storeFile=keystore/synclife-release-key.jks
+          EOF
+          echo "✅ key.properties created"
+          cat android/key.properties
       - name: Clean previous builds
         script: |
           flutter clean
@@ -94,10 +210,14 @@ workflows:
       - name: Generate code with build_runner
         script: |
           dart run build_runner build --delete-conflicting-outputs
+      - name: Pre-download Gradle dependencies
+        script: |
+          cd android
+          ./gradlew dependencies --no-daemon --stacktrace || echo "Dependency download completed"
       - name: Build Android App Bundle (AAB)
         script: |
           echo "Building AAB with proper keystore signing"
-          flutter build appbundle --release --verbose
+          flutter build appbundle --release --verbose --no-tree-shake-icons
       - name: Verify AAB was created
         script: |
           ls -la build/app/outputs/bundle/release/

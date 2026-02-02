@@ -50,12 +50,19 @@ Este documento descreve todos os workflows disponíveis no projeto, incluindo Gi
 - Build APK release
 - Para distribuição direta
 
-### 3. **Android AAB Release (`android-aab-release`) ⭐**
-- **Build AAB para Google Play**
-- **Keystore automático**
+### 3. **Android AAB Minimal (`android-aab-minimal`) ⭐ NOVO**
+- **Build AAB otimizado para Google Play**
+- **90 minutos timeout (vs 60 min)**
+- **Cache do Gradle para builds mais rápidos**
+- **Keystore gerado diretamente no workflow**
 - **Recomendado para releases**
 
-### 4. Code Analysis (`code-analysis`)
+### 4. **Android AAB Release (`android-aab-release`)**
+- Build AAB para Google Play
+- Keystore via variáveis de ambiente
+- Para configurações avançadas
+
+### 5. Code Analysis (`code-analysis`)
 - Análise de código em PRs
 - Não bloqueia builds
 
@@ -76,9 +83,16 @@ Este documento descreve todos os workflows disponíveis no projeto, incluindo Gi
 
 **Como usar:**
 1. Acesse Codemagic Dashboard
-2. Selecione "Android AAB Release (Google Play)"
-3. Execute build
+2. Selecione "Android AAB Minimal (Google Play)" ⭐ NOVO
+3. Execute build (90 min timeout)
 4. Baixe AAB dos artifacts
+
+**Melhorias do workflow minimal:**
+- ✅ Timeout estendido (90 min vs 60 min)
+- ✅ Cache do Gradle e Flutter dependencies
+- ✅ Keystore gerado diretamente (sem scripts)
+- ✅ Tratamento robusto de erros
+- ✅ Verificação aprimorada do AAB
 
 ### Para APK/Web/iOS - GitHub Actions
 
@@ -99,7 +113,7 @@ Este documento descreve todos os workflows disponíveis no projeto, incluindo Gi
 
 2. **Build:**
    - Dashboard > Seu projeto
-   - Workflow: "Android AAB Release (Google Play)"
+   - Workflow: "Android AAB Minimal (Google Play)" ⭐ RECOMENDADO
    - "Start new build"
 
 3. **Download:**
@@ -172,15 +186,16 @@ Este documento descreve todos os workflows disponíveis no projeto, incluindo Gi
 ## 🎯 Recomendação Final
 
 **Para começar rapidamente com AAB:**
-1. ✅ Use Codemagic `android-aab-release`
+1. ✅ Use Codemagic `android-aab-minimal` ⭐ NOVO
 2. ✅ Não configure nada (keystore automático)
-3. ✅ Execute build e baixe AAB
-4. ✅ Upload para Google Play Console
+3. ✅ Execute build (90 min timeout)
+4. ✅ Baixe AAB dos artifacts
+5. ✅ Upload para Google Play Console
 
-**⚠️ Problema Comum Resolvido:**
-- **Erro**: "Keystore file not found for signing config 'release'"
-- **Solução**: Workflow atualizado gera keystore automaticamente
-- **Verificação**: Logs mostram criação do keystore
+**⚠️ Problema Resolvido:**
+- **Erro anterior**: Build timeout durante download de dependências
+- **Solução**: Workflow `android-aab-minimal` com cache e timeout estendido
+- **Verificação**: Logs mostram cache hits e keystore gerado
 
 **Para automação completa:**
 1. ✅ Use GitHub Actions para CI/CD geral

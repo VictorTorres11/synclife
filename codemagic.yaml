@@ -242,6 +242,8 @@ workflows:
     environment:
       flutter: 3.38.7
       java: 17
+      groups:
+        - keystore_credentials
     scripts:
       - name: Set up local.properties
         script: |

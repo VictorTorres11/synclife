@@ -59,12 +59,6 @@ android {
     }
 
     signingConfigs {
-        debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
-        }
         release {
             if (keystorePropertiesFile.exists() && keystoreProperties['storeFile'] != null) {
                 def storeFilePath = keystoreProperties['storeFile']
@@ -76,18 +70,12 @@ android {
                     storePassword keystoreProperties['storePassword']
                     println "✅ Using release keystore: ${keystoreFile.absolutePath}"
                 } else {
-                    println "⚠️ Keystore file not found at ${keystoreFile.absolutePath}, using debug signing"
-                    storeFile file('debug.keystore')
-                    storePassword 'android'
-                    keyAlias 'androiddebugkey'
-                    keyPassword 'android'
+                    println "⚠️ Keystore file not found at ${keystoreFile.absolutePath}"
+                    throw new GradleException("Release keystore file not found. Please configure your signing credentials.")
                 }
             } else {
-                println "⚠️ No keystore properties found, using debug signing"
-                storeFile file('debug.keystore')
-                storePassword 'android'
-                keyAlias 'androiddebugkey'
-                keyPassword 'android'
+                println "⚠️ No keystore properties found. For release builds, please configure signing credentials."
+                throw new GradleException("Release keystore properties not configured. Please add key.properties file or configure signing in CodeMagic.")
             }
         }
     }
@@ -97,7 +85,6 @@ android {
             debuggable true
             minifyEnabled false
             shrinkResources false
-            signingConfig signingConfigs.debug
         }
         release {
             signingConfig signingConfigs.release

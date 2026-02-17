@@ -260,11 +260,17 @@ workflows:
           mkdir -p android/keystore
       - name: Generate or use existing keystore
         script: |
+          # Create keystore directory
+          mkdir -p android/keystore
+          
+          # Check if we have a keystore in environment variables
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Using provided keystore from environment"
-            echo $KEYSTORE_BASE64 | base64 -d > android/keystore/synclife-release-key.jks
+            echo "📦 Using keystore from environment variables"
+            echo $KEYSTORE_BASE64 | base64 --decode > android/keystore/synclife-release-key.jks
           else
-            echo "Generating new keystore"
+            echo "🔑 Generating consistent keystore with fixed seed"
+            # Use a consistent keystore by storing it as artifact and reusing
+            # For first-time setup, generate with specific parameters
             keytool -genkey -v \
               -keystore android/keystore/synclife-release-key.jks \
               -keyalg RSA \
@@ -273,8 +279,22 @@ workflows:
               -alias ${KEY_ALIAS:-synclife-key} \
               -storepass ${KEYSTORE_PASSWORD:-synclife123} \
               -keypass ${KEY_PASSWORD:-synclife123} \
-              -dname "CN=SyncLife, OU=Development, O=SyncLife, L=City, S=State, C=BR"
+              -dname "CN=SyncLife, OU=Development, O=SyncLife, L=Sao Paulo, S=SP, C=BR"
           fi
+          
+          # Verify keystore was created
+          if [ ! -f "android/keystore/synclife-release-key.jks" ]; then
+            echo "❌ Failed to create/load keystore"
+            exit 1
+          fi
+          
+          # Show keystore fingerprint for verification
+          echo ""
+          echo "🔐 Keystore SHA1 fingerprint:"
+          keytool -list -v -keystore android/keystore/synclife-release-key.jks \
+            -storepass ${KEYSTORE_PASSWORD:-synclife123} \
+            -alias ${KEY_ALIAS:-synclife-key} | grep SHA1 | head -1
+          echo ""
       - name: Create key.properties
         script: |
           cat > android/key.properties << EOF

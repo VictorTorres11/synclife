@@ -18,6 +18,18 @@ allprojects {
         google()
         mavenCentral()
     }
+    
+    // Force exclude old Play Core library and use new modular libraries
+    configurations.all {
+        resolutionStrategy {
+            // Exclude the deprecated Play Core library
+            exclude group: 'com.google.android.play', module: 'core'
+            
+            // Force use of compatible versions
+            force 'com.google.android.play:app-update:2.1.0'
+            force 'com.google.android.play:review:2.0.1'
+        }
+    }
 }
 
 rootProject.buildDir = '../build'

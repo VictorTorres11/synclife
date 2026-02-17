@@ -95,6 +95,8 @@ class PremiumUtils {
         return limitationsAsync.maxBoardMembers == -1
             ? -1
             : limitationsAsync.maxBoardMembers;
+      case LimitationType.reminders:
+        return limitationsAsync.remainingReminderSlots;
     }
   }
 
@@ -111,6 +113,8 @@ class PremiumUtils {
         return limitationsAsync.currentBoards / limitationsAsync.maxBoards;
       case LimitationType.boardMembers:
         return 0.0; // Not tracked globally
+      case LimitationType.reminders:
+        return limitationsAsync.reminderUsagePercentage;
     }
   }
 
@@ -122,6 +126,8 @@ class PremiumUtils {
         return 'Unlimited Boards';
       case LimitationType.boardMembers:
         return 'Unlimited Board Members';
+      case LimitationType.reminders:
+        return 'Unlimited Reminders';
     }
   }
 
@@ -133,6 +139,8 @@ class PremiumUtils {
         return 'You\'ve reached your board limit. Upgrade to Premium for unlimited boards.';
       case LimitationType.boardMembers:
         return 'Free users have limited board members. Upgrade for unlimited collaboration.';
+      case LimitationType.reminders:
+        return 'You\'ve reached your reminder limit. Upgrade to Premium for unlimited reminders.';
     }
   }
 

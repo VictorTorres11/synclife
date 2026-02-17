@@ -111,6 +111,8 @@ class LimitationBanner extends ConsumerWidget {
         return !limitations.canCreateMoreBoards;
       case LimitationType.boardMembers:
         return limitations.maxBoardMembers != -1;
+      case LimitationType.reminders:
+        return !limitations.canCreateMoreReminders;
     }
   }
 
@@ -122,6 +124,8 @@ class LimitationBanner extends ConsumerWidget {
         return 'You\'ve reached your board limit (${limitations.maxBoards}). Upgrade to Premium for unlimited boards.';
       case LimitationType.boardMembers:
         return 'Free users can add up to ${limitations.maxBoardMembers} members per board. Upgrade for unlimited members.';
+      case LimitationType.reminders:
+        return 'You\'ve reached your reminder limit (${limitations.maxReminders}). Upgrade to Premium for unlimited reminders.';
     }
   }
 
@@ -146,6 +150,8 @@ class LimitationBanner extends ConsumerWidget {
         return 'Unlimited Boards';
       case LimitationType.boardMembers:
         return 'Unlimited Board Members';
+      case LimitationType.reminders:
+        return 'Unlimited Reminders';
     }
   }
 
@@ -157,6 +163,8 @@ class LimitationBanner extends ConsumerWidget {
         return 'Organize your life with unlimited boards for different projects and areas.';
       case LimitationType.boardMembers:
         return 'Collaborate with unlimited team members on your boards.';
+      case LimitationType.reminders:
+        return 'Capture all your ideas with unlimited reminders.';
     }
   }
 

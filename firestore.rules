@@ -205,5 +205,36 @@ service cloud.firestore {
       allow create: if request.auth != null && 
         request.auth.uid == request.resource.data.userId;
     }
+    
+    // Reminders - users can only access their own reminders
+    match /reminders/{reminderId} {
+      // Allow read if user owns the reminder
+      allow read: if request.auth != null 
+        && resource.data.userId == request.auth.uid;
+      
+      // Allow create if:
+      // - User is authenticated
+      // - userId matches auth uid
+      // - All required fields present
+      // - Content length is between 1 and 500 characters
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'id', 'content', 'userId', 'boardId', 
+          'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.content.size() <= 500;
+      
+      // Allow update if user owns the reminder and userId remains immutable
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+      
+      // Allow delete if user owns the reminder
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
   }
 }

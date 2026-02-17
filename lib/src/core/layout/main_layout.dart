@@ -249,6 +249,13 @@ class _AppDrawer extends ConsumerWidget {
                               },
                             ),
                             _DrawerItem(
+                              icon: Icons.lightbulb_outline,
+                              title: 'Lembretes',
+                              onTap: () {
+                                _navigateWithAnimation(context, '/reminders');
+                              },
+                            ),
+                            _DrawerItem(
                               icon: Icons.dashboard,
                               title: 'Quadros',
                               onTap: () {

@@ -259,6 +259,8 @@ class FirebaseSubscriptionService implements SubscriptionService {
           // This would need additional logic to check current board member count
           return limitations.maxBoardMembers == -1 ||
               limitations.maxBoardMembers > 0;
+        case LimitationType.reminders:
+          return limitations.canCreateMoreReminders;
       }
     } catch (e) {
       throw Exception('Failed to check action permission: $e');
@@ -288,6 +290,12 @@ class FirebaseSubscriptionService implements SubscriptionService {
         case LimitationType.boardMembers:
           // Board members are tracked per board, not globally
           return;
+        case LimitationType.reminders:
+          updatedLimitations = limitations.copyWith(
+            currentReminders: limitations.currentReminders + count,
+            updatedAt: DateTime.now(),
+          );
+          break;
       }
 
       await _firestore
@@ -326,6 +334,14 @@ class FirebaseSubscriptionService implements SubscriptionService {
         case LimitationType.boardMembers:
           // Board members are tracked per board, not globally
           return;
+        case LimitationType.reminders:
+          updatedLimitations = limitations.copyWith(
+            currentReminders: (limitations.currentReminders - count)
+                .clamp(0, double.infinity)
+                .toInt(),
+            updatedAt: DateTime.now(),
+          );
+          break;
       }
 
       await _firestore

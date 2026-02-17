@@ -237,6 +237,8 @@ class UsageIndicator extends ConsumerWidget {
         return limitations.currentBoards;
       case LimitationType.boardMembers:
         return 0; // Not tracked globally
+      case LimitationType.reminders:
+        return limitations.currentReminders;
     }
   }
 
@@ -248,6 +250,8 @@ class UsageIndicator extends ConsumerWidget {
         return limitations.maxBoards;
       case LimitationType.boardMembers:
         return limitations.maxBoardMembers;
+      case LimitationType.reminders:
+        return limitations.maxReminders;
     }
   }
 
@@ -259,6 +263,8 @@ class UsageIndicator extends ConsumerWidget {
         return 'Boards';
       case LimitationType.boardMembers:
         return 'Board Members';
+      case LimitationType.reminders:
+        return 'Reminders';
     }
   }
 
@@ -270,6 +276,8 @@ class UsageIndicator extends ConsumerWidget {
         return Icons.dashboard;
       case LimitationType.boardMembers:
         return Icons.group;
+      case LimitationType.reminders:
+        return Icons.lightbulb_outline;
     }
   }
 }

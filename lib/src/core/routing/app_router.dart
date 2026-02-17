@@ -12,6 +12,7 @@ import '../../features/tasks/presentation/pages/tasks_page.dart';
 import '../../features/tasks/presentation/screens/board_management_screen.dart';
 import '../../features/tasks/presentation/screens/task_detail_screen.dart';
 import '../../features/tasks/domain/models/task.dart';
+import '../../features/reminders/presentation/screens/reminders_page.dart';
 import '../../features/notifications/presentation/screens/notification_center_screen.dart';
 import '../../features/notifications/presentation/screens/notification_settings_screen.dart';
 import '../../features/gamification/presentation/screens/gamification_dashboard_screen.dart';
@@ -73,6 +74,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/boards',
         builder: (context, state) => const BoardManagementScreen(),
+      ),
+
+      // Reminders route
+      GoRoute(
+        path: '/reminders',
+        builder: (context, state) => const RemindersPage(),
       ),
 
       // Notifications routes

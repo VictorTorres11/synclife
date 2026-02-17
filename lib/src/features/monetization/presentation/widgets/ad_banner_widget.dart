@@ -348,6 +348,9 @@ class LimitationWarningWidget extends ConsumerWidget {
       case LimitationType.boardMembers:
         // This would need additional logic to check current usage
         return false;
+      case LimitationType.reminders:
+        if (limitations.maxReminders == -1) return false;
+        return limitations.reminderUsagePercentage >= warningThreshold;
     }
   }
 
@@ -361,6 +364,9 @@ class LimitationWarningWidget extends ConsumerWidget {
         return 'You have $remaining board slots remaining. Upgrade for unlimited boards.';
       case LimitationType.boardMembers:
         return 'Board member limit reached. Upgrade for unlimited members.';
+      case LimitationType.reminders:
+        final remaining = limitations.remainingReminderSlots;
+        return 'You have $remaining reminder slots remaining. Upgrade for unlimited reminders.';
     }
   }
 }

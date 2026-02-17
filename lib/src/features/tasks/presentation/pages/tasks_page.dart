@@ -14,7 +14,6 @@ import '../providers/board_providers.dart';
 import '../providers/task_providers.dart';
 import '../widgets/add_task_dialog.dart';
 import '../widgets/create_board_dialog.dart';
-import '../widgets/inbox_widget.dart';
 import '../widgets/task_filter_bar.dart';
 import '../widgets/task_list_item.dart';
 
@@ -44,7 +43,7 @@ class _TasksPageState extends ConsumerState<TasksPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 1, vsync: this);
   }
 
   @override
@@ -79,13 +78,8 @@ class _TasksPageState extends ConsumerState<TasksPage>
         children: [
           TabBar(
             controller: _tabController,
-            tabs: [
-              const Tab(icon: Icon(Icons.task_alt), text: 'Tasks'),
-              Tab(
-                key: SyncLifeOnboardingSteps.inboxTabKey,
-                icon: const Icon(Icons.inbox),
-                text: 'Inbox',
-              ),
+            tabs: const [
+              Tab(icon: Icon(Icons.task_alt), text: 'Tasks'),
             ],
           ),
           Expanded(
@@ -93,7 +87,6 @@ class _TasksPageState extends ConsumerState<TasksPage>
               controller: _tabController,
               children: [
                 _buildTasksTab(currentUser.id),
-                _buildInboxTab(currentUser.id),
               ],
             ),
           ),
@@ -289,21 +282,6 @@ class _TasksPageState extends ConsumerState<TasksPage>
             label: const Text('Criar Primeiro Quadro'),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildInboxTab(String userId) {
-    // Get inbox items from state
-    final inboxItems = ref.watch(inboxItemsProvider);
-
-    return SingleChildScrollView(
-      child: InboxWidget(
-        inboxItems: inboxItems,
-        onAddItem: (content) => _addInboxItem(content, userId),
-        onEditItem: _editInboxItem,
-        onDeleteItem: _deleteInboxItem,
-        onConvertToTask: _convertInboxToTask,
       ),
     );
   }
@@ -818,375 +796,8 @@ class _TasksPageState extends ConsumerState<TasksPage>
       }
     }
   }
-
-  void _addInboxItem(String content, String userId) {
-    try {
-      final newItem = InboxItem(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        content: content,
-        userId: userId,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      ref.read(inboxItemsProvider.notifier).addItem(newItem);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lembrete adicionado com sucesso!'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao adicionar lembrete: $e'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  void _editInboxItem(String itemId, String newContent) {
-    try {
-      ref.read(inboxItemsProvider.notifier).updateItem(itemId, newContent);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lembrete atualizado com sucesso!'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao atualizar lembrete: $e'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  void _deleteInboxItem(String itemId) {
-    try {
-      ref.read(inboxItemsProvider.notifier).removeItem(itemId);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lembrete removido com sucesso!'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao remover lembrete: $e'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  void _convertInboxToTask(InboxItem item) {
-    _showConvertToTaskDialog(item);
-  }
-
-  Future<void> _showConvertToTaskDialog(InboxItem item) async {
-    final currentUser = ref.read(currentUserProvider);
-    if (currentUser == null) return;
-
-    final userBoardsAsync = ref.read(userBoardsProvider);
-
-    await userBoardsAsync.when(
-      data: (boards) async {
-        if (boards.isEmpty) {
-          // Create default board first
-          await _createDefaultBoardSilently(currentUser.id);
-          // Refresh boards
-          ref.invalidate(userBoardsProvider);
-          await Future.delayed(const Duration(milliseconds: 500));
-
-          final updatedBoardsAsync = ref.read(userBoardsProvider);
-          await updatedBoardsAsync.when(
-            data: (updatedBoards) async {
-              if (updatedBoards.isEmpty) {
-                throw Exception('Failed to create default board');
-              }
-              await _showTaskConversionDialog(
-                  item, updatedBoards.first, currentUser.id);
-            },
-            loading: () async {
-              throw Exception('Loading boards...');
-            },
-            error: (error, stack) async {
-              throw Exception('Error loading updated boards: $error');
-            },
-          );
-        } else {
-          await _showTaskConversionDialog(item, boards.first, currentUser.id);
-        }
-      },
-      loading: () async {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Loading boards...')),
-        );
-      },
-      error: (error, stack) async {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading boards: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showTaskConversionDialog(
-      InboxItem item, Board board, String userId) async {
-    if (!mounted) return;
-
-    final result = await showDialog<CreateTaskRequest>(
-      context: context,
-      builder: (context) => _ConvertToTaskDialog(
-        inboxItem: item,
-        boardId: board.id,
-        userId: userId,
-        availableTags: _availableTags,
-      ),
-    );
-
-    if (result != null) {
-      try {
-        final taskService = ref.read(taskServiceProvider);
-        await taskService.createTask(result);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content:
-                  Text('Task "${result.title}" created from inbox item! 🎉'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-
-          // Remove the inbox item after successful conversion
-          _deleteInboxItem(item.id);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error creating task: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
 }
 
-/// Dialog for converting inbox item to task
-class _ConvertToTaskDialog extends StatefulWidget {
-  const _ConvertToTaskDialog({
-    required this.inboxItem,
-    required this.boardId,
-    required this.userId,
-    required this.availableTags,
-  });
-
-  final InboxItem inboxItem;
-  final String boardId;
-  final String userId;
-  final List<String> availableTags;
-
-  @override
-  State<_ConvertToTaskDialog> createState() => _ConvertToTaskDialogState();
-}
-
-class _ConvertToTaskDialogState extends State<_ConvertToTaskDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _titleController;
-  late final TextEditingController _descriptionController;
-
-  DateTime? _selectedDate;
-  TaskRecurrence _selectedRecurrence = TaskRecurrence.none;
-  List<String> _selectedTags = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.inboxItem.content);
-    _descriptionController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Convert to Task'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Title field
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Task Title',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a task title';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Description field
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-
-              // Due date picker
-              ListTile(
-                leading: const Icon(Icons.calendar_today),
-                title: Text(_selectedDate == null
-                    ? 'No due date'
-                    : 'Due: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'),
-                trailing: _selectedDate != null
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => setState(() => _selectedDate = null),
-                      )
-                    : null,
-                onTap: _selectDate,
-              ),
-              const SizedBox(height: 16),
-
-              // Recurrence dropdown
-              DropdownButtonFormField<TaskRecurrence>(
-                value: _selectedRecurrence,
-                decoration: const InputDecoration(
-                  labelText: 'Recurrence',
-                  border: OutlineInputBorder(),
-                ),
-                items: TaskRecurrence.values.map((recurrence) {
-                  return DropdownMenuItem(
-                    value: recurrence,
-                    child: Text(_getRecurrenceLabel(recurrence)),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedRecurrence = value);
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Tags selection
-              Wrap(
-                spacing: 8,
-                children: widget.availableTags.map((tag) {
-                  final isSelected = _selectedTags.contains(tag);
-                  return FilterChip(
-                    label: Text(tag),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _selectedTags.add(tag);
-                        } else {
-                          _selectedTags.remove(tag);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _convertToTask,
-          child: const Text('Create Task'),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _selectDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-
-    if (date != null) {
-      setState(() => _selectedDate = date);
-    }
-  }
-
-  String _getRecurrenceLabel(TaskRecurrence recurrence) {
-    switch (recurrence) {
-      case TaskRecurrence.none:
-        return 'None';
-      case TaskRecurrence.daily:
-        return 'Daily';
-      case TaskRecurrence.weekly:
-        return 'Weekly';
-      case TaskRecurrence.monthly:
-        return 'Monthly';
-      case TaskRecurrence.custom:
-        return 'Custom';
-    }
-  }
-
-  void _convertToTask() {
-    if (!_formKey.currentState!.validate()) return;
-
-    final request = CreateTaskRequest(
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim().isEmpty
-          ? null
-          : _descriptionController.text.trim(),
-      boardId: widget.boardId,
-      recurrence: _selectedRecurrence,
-      dueDate: _selectedDate,
-      tags: _selectedTags,
-      createdBy: widget.userId,
-    );
-
-    Navigator.of(context).pop(request);
-  }
-}
 /// Modal for selecting multiple boards
 class _BoardSelectionModal extends StatefulWidget {
   const _BoardSelectionModal({

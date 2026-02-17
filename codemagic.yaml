@@ -6,8 +6,6 @@ workflows:
     environment:
       flutter: 3.38.7
       java: 17
-      groups:
-        - firebase_config
     cache:
       cache_paths:
         - ~/.gradle/caches
@@ -120,8 +118,6 @@ workflows:
     environment:
       flutter: 3.38.7
       java: 17
-      groups:
-        - firebase_config
     scripts:
       - name: Set up local.properties
         script: |
@@ -156,8 +152,6 @@ workflows:
     environment:
       flutter: 3.38.7
       java: 17
-      groups:
-        - firebase_config
     cache:
       cache_paths:
         - ~/.gradle/caches
@@ -248,9 +242,12 @@ workflows:
     environment:
       flutter: 3.38.7
       java: 17
-      groups:
-        - firebase_config
-        - keystore_credentials
+      vars:
+        # Keystore credentials - configure these in CodeMagic Environment Variables
+        # KEYSTORE_BASE64: base64 encoded keystore file
+        # KEYSTORE_PASSWORD: keystore password
+        # KEY_ALIAS: key alias (default: synclife-key)
+        # KEY_PASSWORD: key password
     scripts:
       - name: Set up local.properties
         script: |

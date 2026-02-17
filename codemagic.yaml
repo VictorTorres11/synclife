@@ -39,7 +39,7 @@ workflows:
           storePassword=synclife123
           keyPassword=synclife123
           keyAlias=synclife-key
-          storeFile=keystore/synclife-release-key.jks
+          storeFile=../keystore/synclife-release-key.jks
           EOF
           
           # Verify setup
@@ -197,7 +197,7 @@ workflows:
           storePassword=synclife123
           keyPassword=synclife123
           keyAlias=synclife-key
-          storeFile=keystore/synclife-release-key.jks
+          storeFile=../keystore/synclife-release-key.jks
           EOF
           echo "✅ key.properties created"
           cat android/key.properties
@@ -281,22 +281,42 @@ workflows:
           storePassword=${KEYSTORE_PASSWORD:-synclife123}
           keyPassword=${KEY_PASSWORD:-synclife123}
           keyAlias=${KEY_ALIAS:-synclife-key}
-          storeFile=keystore/synclife-release-key.jks
+          storeFile=../keystore/synclife-release-key.jks
           EOF
       - name: Verify keystore exists
         script: |
+          echo "Checking keystore location..."
           if [ -f "android/keystore/synclife-release-key.jks" ]; then
             echo "✅ Keystore found at android/keystore/synclife-release-key.jks"
             ls -la android/keystore/
           else
-            echo "❌ Keystore not found!"
+            echo "❌ Keystore not found at android/keystore/!"
+            echo "Listing android directory:"
+            ls -la android/
             exit 1
           fi
       - name: Verify key.properties exists
         script: |
+          echo "Checking key.properties..."
           if [ -f "android/key.properties" ]; then
             echo "✅ key.properties found"
-            cat android/key.properties
+            echo "Content (passwords hidden):"
+            cat android/key.properties | sed 's/Password=.*/Password=***/'
+            echo ""
+            echo "Verifying storeFile path from app directory:"
+            cd android/app
+            STORE_FILE=$(grep storeFile ../key.properties | cut -d'=' -f2)
+            echo "storeFile value: $STORE_FILE"
+            if [ -f "$STORE_FILE" ]; then
+              echo "✅ Keystore accessible from app directory at: $STORE_FILE"
+              ls -la "$STORE_FILE"
+            else
+              echo "❌ Keystore NOT accessible from app directory!"
+              echo "Looking for: $STORE_FILE"
+              echo "Current directory: $(pwd)"
+              ls -la ../keystore/ || echo "keystore directory not found"
+              exit 1
+            fi
           else
             echo "❌ key.properties not found!"
             exit 1

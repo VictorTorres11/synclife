@@ -152,6 +152,42 @@ android/
 
 ## Troubleshooting
 
+### Erro: "Release keystore file not found"
+
+**Causa**: O caminho do keystore no `key.properties` está incorreto ou o arquivo não existe
+
+**Solução**:
+
+1. **Verifique o caminho no key.properties**:
+   - O caminho deve ser relativo ao diretório `android/app/`
+   - Se o keystore está em `android/keystore/`, use: `storeFile=../keystore/synclife-release-key.jks`
+   - Se está em `android/app/`, use: `storeFile=synclife-release-key.jks`
+
+2. **Verifique se o arquivo existe**:
+   ```yaml
+   - name: Debug keystore location
+     script: |
+       echo "Checking keystore..."
+       ls -la android/keystore/
+       echo "Checking from app directory:"
+       cd android/app
+       ls -la ../keystore/
+   ```
+
+3. **Teste o caminho do build.gradle**:
+   ```yaml
+   - name: Test keystore path
+     script: |
+       cd android/app
+       STORE_FILE=$(grep storeFile ../key.properties | cut -d'=' -f2)
+       echo "storeFile path: $STORE_FILE"
+       if [ -f "$STORE_FILE" ]; then
+         echo "✅ Keystore found!"
+       else
+         echo "❌ Keystore not found at: $STORE_FILE"
+       fi
+   ```
+
 ### Erro: "Keystore file not found"
 
 **Causa**: O arquivo keystore não foi criado corretamente

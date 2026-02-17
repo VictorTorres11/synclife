@@ -68,15 +68,15 @@ android {
         release {
             if (keystorePropertiesFile.exists() && keystoreProperties['storeFile'] != null) {
                 def storeFilePath = keystoreProperties['storeFile']
-                def storeFile = file(storeFilePath)
-                if (storeFile.exists()) {
+                def keystoreFile = file(storeFilePath)
+                if (keystoreFile.exists()) {
                     keyAlias keystoreProperties['keyAlias']
                     keyPassword keystoreProperties['keyPassword']
-                    storeFile storeFile
+                    storeFile keystoreFile
                     storePassword keystoreProperties['storePassword']
-                    println "✅ Using release keystore: ${storeFile.absolutePath}"
+                    println "✅ Using release keystore: ${keystoreFile.absolutePath}"
                 } else {
-                    println "⚠️ Keystore file not found at ${storeFile.absolutePath}, using debug signing"
+                    println "⚠️ Keystore file not found at ${keystoreFile.absolutePath}, using debug signing"
                     storeFile file('debug.keystore')
                     storePassword 'android'
                     keyAlias 'androiddebugkey'
